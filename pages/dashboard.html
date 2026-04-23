@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CloudStay PMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #1a365d; --accent: #ed8936; --success: #38a169; --warning: #d69e2e; --danger: #e53e3e; --info: #3182ce; --bg: #f7fafc; --surface: #ffffff; --text: #1a202c; --text-secondary: #718096; --border: #e2e8f0; --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05); --radius: 8px; }
+        body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+        
+        /* Full Page Layout */
+        .page-wrapper { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar { width: 260px; background: linear-gradient(180deg, var(--primary) 0%, #0f2442 100%); position: fixed; height: 100vh; padding: 0; display: flex; flex-direction: column; }
+        .sidebar-header { height: 64px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 38px; height: 38px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+        .logo-text { color: white; font-weight: 700; font-size: 18px; }
+        
+        .nav-section { padding: 16px 8px 8px; }
+        .nav-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); padding: 0 12px; margin-bottom: 8px; }
+        
+        .nav-link { display: flex; align-items: center; padding: 12px 14px; color: rgba(255,255,255,0.75); gap: 12px; text-decoration: none; border-radius: 6px; margin: 2px 0; transition: all 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.08); color: white; }
+        .nav-link.active { background: var(--accent); color: white; }
+        .nav-link i { width: 18px; text-align: center; }
+        
+        /* Main Content */
+        .main-content { flex: 1; margin-left: 260px; }
+        
+        /* Header */
+        .header { height: 64px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; }
+        .header h1 { font-size: 20px; color: var(--primary); }
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        .header-date { color: var(--text-secondary); }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px; }
+        
+        /* Page Content */
+        .page-content { padding: 24px; }
+        
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
+        .stat-card { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+        .stat-card.blue::before { background: var(--info); }
+        .stat-card.green::before { background: var(--success); }
+        .stat-card.orange::before { background: var(--accent); }
+        .stat-card.purple::before { background: #805ad5; }
+        .stat-icon { width: 42px; height: 42px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+        .stat-card.blue .stat-icon { background: #bee3f8; color: var(--info); }
+        .stat-card.green .stat-icon { background: #c6f6d5; color: var(--success); }
+        .stat-card.orange .stat-icon { background: #fffaf0; color: var(--accent); }
+        .stat-card.purple .stat-icon { background: #faf5ff; color: #805ad5; }
+        .stat-label { color: var(--text-secondary); font-size: 13px; margin-bottom: 4px; }
+        .stat-value { font-size: 32px; font-weight: 700; }
+        .stat-change { font-size: 12px; margin-top: 4px; }
+        .stat-change.positive { color: var(--success); }
+        
+        /* Cards */
+        .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .card-title i { color: var(--accent); }
+        
+        /* Quick Actions */
+        .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .quick-btn { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; cursor: pointer; text-decoration: none; color: var(--text); }
+        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        /* Grid layouts */
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        
+        /* Tables */
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 12px 16px; text-align: left; }
+        .data-table th { background: var(--bg); font-weight: 500; font-size: 12px; text-transform: uppercase; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+        .data-table tr { border-bottom: 1px solid var(--border); }
+        .data-table tr:hover { background: var(--bg); }
+        
+        .badge { display: inline-flex; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .badge-success { background: #c6f6d5; color: #22543d; }
+        .badge-danger { background: #fed7d7; color: #742a2a; }
+        .badge-info { background: #bee3f8; color: #2a4365; }
+        .badge-warning { background: #fefcbf; color: #744210; }
+        .badge-vip { background: #805ad5; color: white; }
+        
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        
+        /* Charts */
+        .chart-container { height: 280px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%); border-radius: 8px; }
+        .chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 180px; }
+        .chart-bar { width: 32px; background: linear-gradient(180deg, var(--primary) 0%, #2d5a87 100%); border-radius: 4px 4px 0 0; }
+        
+        /* Activity */
+        .activity-list { max-height: 400px; overflow-y: auto; }
+        .activity-item { padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 12px; }
+        .activity-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .activity-content { flex: 1; }
+        .activity-title { font-weight: 500; }
+        .activity-time { font-size: 12px; color: var(--text-secondary); }
+        
+        /* Room Grid */
+        .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        .room-card { background: var(--surface); border-radius: 8px; padding: 14px; box-shadow: var(--shadow); border-left: 4px solid var(--border); text-align: center; }
+        .room-card.available { border-left-color: var(--success); }
+        .room-card.occupied { border-left-color: var(--danger); }
+        .room-card.reserved { border-left-color: var(--info); }
+        .room-card.maintenance { border-left-color: var(--warning); }
+        .room-number { font-size: 20px; font-weight: 700; }
+        .room-type { font-size: 11px; color: var(--text-secondary); }
+        
+        /* Revenue Box */
+        .revenue-box { text-align: center; }
+        .revenue-amount { font-size: 42px; font-weight: 700; color: var(--primary); }
+        .revenue-change { color: var(--text-secondary); margin-top: 8px; }
+        .revenue-breakdown { display: flex; gap: 24px; justify-content: center; margin-top: 20px; }
+        .revenue-item { text-align: center; }
+        .revenue-item-value { font-size: 24px; font-weight: 600; }
+        .revenue-item-label { font-size: 12px; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">CS</div>
+                    <span class="logo-text">CloudStay</span>
+                </div>
+            </div>
+            
+            <nav class="nav-section">
+                <div class="nav-title">Main</div>
+                <a href="index.html" class="nav-link active"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+                <a href="reservations.html" class="nav-link"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
+                <a href="frontdesk.html" class="nav-link"><i class="fas fa-concierge-bell"></i><span>Front Desk</span></a>
+                <a href="guests.html" class="nav-link"><i class="fas fa-users"></i><span>Guests</span></a>
+                <a href="rooms.html" class="nav-link"><i class="fas fa-bed"></i><span>Rooms</span></a>
+                <a href="rates.html" class="nav-link"><i class="fas fa-dollar-sign"></i><span>Rates</span></a>
+            </nav>
+            
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <a href="housekeeping.html" class="nav-link"><i class="fas fa-broom"></i><span>Housekeeping</span></a>
+                <a href="nightaudit.html" class="nav-link"><i class="fas fa-moon"></i><span>Night Audit</span></a>
+                <a href="folio.html" class="nav-link"><i class="fas fa-receipt"></i><span>Folio</span></a>
+            </nav>
+            
+            <nav class="nav-section">
+                <div class="nav-title">System</div>
+                <a href="reports.html" class="nav-link"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
+                <a href="users.html" class="nav-link"><i class="fas fa-user-cog"></i><span>Users</span></a>
+                <a href="settings.html" class="nav-link"><i class="fas fa-cog"></i><span>Settings</span></a>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h1>Dashboard</h1>
+                <div class="header-right">
+                    <span class="header-date" id="currentDate"></span>
+                    <div class="user-info">
+                        <div class="user-avatar">JD</div>
+                        <span>John Doe</span>
+                    </div>
+                </div>
+            </header>
+            
+            <div class="page-content">
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                        <div class="stat-label">Today's Arrivals</div>
+                        <div class="stat-value" id="arrivals">0</div>
+                        <div class="stat-change positive" id="arrivalsChange">+0 from yesterday</div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="stat-icon"><i class="fas fa-user-minus"></i></div>
+                        <div class="stat-label">Today's Departures</div>
+                        <div class="stat-value" id="departures">0</div>
+                        <div class="stat-change" id="departuresChange">-0 from yesterday</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+                        <div class="stat-label">Occupancy Rate</div>
+                        <div class="stat-value" id="occupancy">0%</div>
+                        <div class="stat-change positive" id="occupancyChange">+0% vs last week</div>
+                    </div>
+                    <div class="stat-card purple">
+                        <div class="stat-icon"><i class="fas fa-door-open"></i></div>
+                        <div class="stat-label">Available Rooms</div>
+                        <div class="stat-value" id="available">0</div>
+                        <div class="stat-change" id="totalRooms">of 0 rooms</div>
+                    </div>
+                </div>
+                
+                <!-- Charts Row -->
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-chart-line"></i> Occupancy Trend (Last 14 Days)</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <div class="chart-bars" id="occupancyChart"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-dollar-sign"></i> Today's Revenue</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="revenue-box">
+                                <div class="revenue-amount" id="dailyRevenue">$0</div>
+                                <div class="revenue-change" id="revenueChange">+0% vs yesterday</div>
+                                <div class="revenue-breakdown">
+                                    <div class="revenue-item">
+                                        <div class="revenue-item-value" id="roomsRev">$0</div>
+                                        <div class="revenue-item-label">Rooms</div>
+                                    </div>
+                                    <div class="revenue-item">
+                                        <div class="revenue-item-value" id="fnbRev">$0</div>
+                                        <div class="revenue-item-label">F&B</div>
+                                    </div>
+                                    <div class="revenue-item">
+                                        <div class="revenue-item-value" id="otherRev">$0</div>
+                                        <div class="revenue-item-label">Other</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lists Row -->
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-user-clock"></i> Pending Check-ins</h3>
+                            <a href="frontdesk.html" class="btn btn-sm btn-secondary">View All</a>
+                        </div>
+                        <table class="data-table">
+                            <thead><tr><th>Room</th><th>Guest</th><th>Arrival</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="pendingCheckins"></tbody>
+                        </table>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-history"></i> Recent Activity</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-list" id="activityFeed"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Room Overview -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-bed"></i> Room Status Overview</h3>
+                        <div class="quick-actions">
+                            <a href="rooms.html" class="quick-btn">All Rooms</a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="room-grid" id="roomGrid"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Data Store
+        const DB = { guests: [], reservations: [], rooms: [], roomTypes: [], activities: [] };
+        
+        // Initialize Data
+        function init() {
+            // Room Types
+            DB.roomTypes = [
+                { id: 'STD', name: 'Standard', baseRate: 99 },
+                { id: 'DLX', name: 'Deluxe', baseRate: 149 },
+                { id: 'SUP', name: 'Superior', baseRate: 199 },
+                { id: 'STE', name: 'Suite', baseRate: 299 },
+                { id: 'PENT', name: 'Penthouse', baseRate: 499 }
+            ];
+            
+            // Generate 100 Rooms
+            let roomId = 1;
+            const statuses = ['available', 'available', 'occupied', 'occupied', 'reserved', 'maintenance'];
+            for (let floor = 1; floor <= 5; floor++) {
+                for (let num = 1; num <= 20; num++) {
+                    const typeIdx = Math.floor(Math.random() * DB.roomTypes.length);
+                    DB.rooms.push({
+                        id: roomId++,
+                        number: `${floor}${num.toString().padStart(2, '0')}`,
+                        type: DB.roomTypes[typeIdx].id,
+                        status: statuses[Math.floor(Math.random() * statuses.length)],
+                        rate: DB.roomTypes[typeIdx].baseRate
+                    });
+                }
+            }
+            
+            // Guest Names
+            const names = ['James Wilson', 'Maria Garcia', 'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emma Davis', 'Robert Miller', 'Lisa Anderson'];
+            names.forEach((name, i) => {
+                const parts = name.split(' ');
+                DB.guests.push({
+                    id: `G${String(i+1).padStart(4, '0')}`,
+                    firstName: parts[0],
+                    lastName: parts[1],
+                    email: `${parts[0].toLowerCase()}@email.com`,
+                    phone: `+1 555 ${Math.floor(Math.random()*900)+100} ${Math.floor(Math.random()*9000)+1000}`,
+                    country: ['USA', 'UK', 'Spain'][Math.floor(Math.random()*3)],
+                    type: Math.random() > 0.7 ? 'VIP' : 'Regular'
+                });
+            });
+            
+            // Reservations
+            const today = new Date();
+            for (let i = 0; i < 30; i++) {
+                const checkIn = new Date(today.getTime() + (Math.random()-0.4)*14*24*60*60*1000);
+                const checkOut = new Date(checkIn.getTime() + (Math.floor(Math.random()*4)+1)*24*60*60*1000);
+                const guest = DB.guests[Math.floor(Math.random() * DB.guests.length)];
+                const room = DB.rooms[Math.floor(Math.random() * DB.rooms.length)];
+                const status = checkIn.toDateString() === today.toDateString() ? 'due_in' : 
+                            checkOut.toDateString() === today.toDateString() ? 'due_out' : 'confirmed';
+                
+                DB.reservations.push({
+                    id: `RES${String(i+1).padStart(4, '0')}`,
+                    guestId: guest.id,
+                    guestName: `${guest.firstName} ${guest.lastName}`,
+                    roomId: room.id,
+                    roomNumber: room.number,
+                    checkIn: checkIn.toISOString().split('T')[0],
+                    checkOut: checkOut.toISOString().split('T')[0],
+                    status: status,
+                    rate: 99 + Math.floor(Math.random()*200)
+                });
+            }
+            
+            // Activities
+            const actions = ['checked in', 'checked out', 'created reservation', 'updated profile'];
+            for (let i = 0; i < 10; i++) {
+                const guest = DB.guests[Math.floor(Math.random() * DB.guests.length)];
+                DB.activities.push({
+                    guest: `${guest.firstName} ${guest.lastName}`,
+                    action: actions[Math.floor(Math.random() * actions.length)],
+                    time: new Date(Date.now() - Math.random() * 8*60*60*1000).toISOString()
+                });
+            }
+            
+            renderDashboard();
+        }
+        
+        function renderDashboard() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Stats
+            const arrivals = DB.reservations.filter(r => r.checkIn === today && r.status === 'due_in').length;
+            const departures = DB.reservations.filter(r => r.checkOut === today && r.status === 'due_out').length;
+            const available = DB.rooms.filter(r => r.status === 'available').length;
+            const total = DB.rooms.length;
+            const occupancy = Math.round(((total - available) / total) * 100);
+            
+            document.getElementById('arrivals').textContent = arrivals;
+            document.getElementById('departures').textContent = departures;
+            document.getElementById('available').textContent = available;
+            document.getElementById('totalRooms').textContent = `of ${total} rooms`;
+            document.getElementById('occupancy').textContent = occupancy + '%';
+            
+            // Revenue
+            const roomRev = DB.reservations.reduce((sum, r) => sum + (r.rate || 0), 0);
+            const dailyRev = roomRev + Math.floor(Math.random() * 500);
+            document.getElementById('dailyRevenue').textContent = `$${dailyRev.toLocaleString()}`;
+            document.getElementById('roomsRev').textContent = `$${roomRev}`;
+            document.getElementById('fnbRev').textContent = `$${Math.floor(dailyRev * 0.1)}`;
+            document.getElementById('otherRev').textContent = `$${Math.floor(dailyRev * 0.05)}`;
+            
+            // Occupancy Chart
+            let chartHtml = '';
+            for (let i = 0; i < 14; i++) {
+                chartHtml += `<div class="chart-bar" style="height: ${40 + Math.random() * 140}px;"></div>`;
+            }
+            document.getElementById('occupancyChart').innerHTML = chartHtml;
+            
+            // Pending Check-ins
+            const pending = DB.reservations.filter(r => r.checkIn === today);
+            document.getElementById('pendingCheckins').innerHTML = pending.slice(0, 5).map(r => `
+                <tr>
+                    <td class="mono">${r.roomNumber}</td>
+                    <td>${r.guestName}</td>
+                    <td>${r.checkIn}</td>
+                    <td><span class="badge badge-info">${r.status}</span></td>
+                    <td><a href="frontdesk.html?checkin=${r.id}" class="btn btn-sm btn-accent">Check In</a></td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary)">No pending check-ins</td></tr>';
+            
+            // Activity Feed
+            const colors = ['blue', 'green', 'orange', 'purple'];
+            document.getElementById('activityFeed').innerHTML = DB.activities.slice(0, 6).map(a => `
+                <div class="activity-item">
+                    <div class="activity-icon stat-icon ${colors[Math.floor(Math.random() * colors.length)]}" style="background: var(--info-light); color: var(--info);">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">${a.guest} ${a.action}</div>
+                        <div class="activity-time">${timeAgo(a.time)}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Room Grid
+            document.getElementById('roomGrid').innerHTML = DB.rooms.slice(0, 30).map(r => {
+                const type = DB.roomTypes.find(t => t.id === r.type);
+                return `
+                    <div class="room-card ${r.status}">
+                        <div class="room-number">${r.number}</div>
+                        <div class="room-type">${type.name}</div>
+                        <span class="badge badge-${r.status === 'available' ? 'success' : r.status === 'occupied' ? 'danger' : r.status === 'reserved' ? 'info' : 'warning'}">${r.status}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function timeAgo(dateStr) {
+            const diff = Math.floor((new Date() - new Date(dateStr)) / 60000);
+            if (diff < 1) return 'Just now';
+            if (diff < 60) return `${diff}m ago`;
+            if (diff < 1440) return `${Math.floor(diff/60)}h ago`;
+            return `${Math.floor(diff/1440)}d ago`;
+        }
+        
+        // Set current date
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        
+        init();
+    </script>
+</body>
+</html>

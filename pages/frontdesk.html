@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Front Desk - CloudStay PMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #1a365d; --accent: #ed8936; --success: #38a169; --warning: #d69e2e; --danger: #e53e3e; --info: #3182ce; --bg: #f7fafc; --surface: #ffffff; --text: #1a202c; --text-secondary: #718096; --border: #e2e8f0; --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05); --radius: 8px; }
+        body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+        
+        .page-wrapper { display: flex; min-height: 100vh; }
+        
+        .sidebar { width: 260px; background: linear-gradient(180deg, var(--primary) 0%, #0f2442 100%); position: fixed; height: 100vh; display: flex; flex-direction: column; }
+        .sidebar-header { height: 64px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 38px; height: 38px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; }
+        .logo-text { color: white; font-weight: 700; font-size: 18px; }
+        
+        .nav-section { padding: 16px 8px 8px; }
+        .nav-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); padding: 0 12px; margin-bottom: 8px; }
+        .nav-link { display: flex; align-items: center; padding: 12px 14px; color: rgba(255,255,255,0.75); gap: 12px; text-decoration: none; border-radius: 6px; margin: 2px 0; transition: all 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.08); color: white; }
+        .nav-link.active { background: var(--accent); color: white; }
+        .nav-link i { width: 18px; text-align: center; }
+        
+        .main-content { flex: 1; margin-left: 260px; }
+        .header { height: 64px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; }
+        .header h1 { font-size: 20px; color: var(--primary); }
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        .header-date { color: var(--text-secondary); }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px; }
+        
+        .page-content { padding: 24px; }
+        
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+        
+        .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .card-title i { color: var(--accent); }
+        .card-body { padding: 20px; }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
+        .form-input, .form-select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; font-family: inherit; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent); }
+        
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 12px 16px; text-align: left; }
+        .data-table th { background: var(--bg); font-weight: 500; font-size: 12px; text-transform: uppercase; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+        .data-table tr { border-bottom: 1px solid var(--border); }
+        .data-table tr:hover { background: var(--bg); }
+        
+        .badge { display: inline-flex; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .badge-success { background: #c6f6d5; color: #22543d; }
+        .badge-danger { background: #fed7d7; color: #742a2a; }
+        .badge-warning { background: #fefcbf; color: #744210; }
+        .badge-info { background: #bee3f8; color: #2a4365; }
+        
+        .search-box { position: relative; margin-bottom: 16px; }
+        .search-box input { padding: 10px 14px 10px 40px; border: 1px solid var(--border); border-radius: 6px; width: 100%; font-size: 14px; }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        
+        .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-secondary); }
+        .stat-value { font-weight: 600; }
+        
+        .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; background: var(--primary); color: white; border-radius: 8px; transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 2000; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        
+        .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .action-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .action-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo"><div class="logo-icon">CS</div><span class="logo-text">CloudStay</span></div>
+            </div>
+            <nav class="nav-section">
+                <div class="nav-title">Main</div>
+                <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+                <a href="reservations.html" class="nav-link"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
+                <a href="frontdesk.html" class="nav-link active"><i class="fas fa-concierge-bell"></i><span>Front Desk</span></a>
+                <a href="guests.html" class="nav-link"><i class="fas fa-users"></i><span>Guests</span></a>
+                <a href="rooms.html" class="nav-link"><i class="fas fa-bed"></i><span>Rooms</span></a>
+                <a href="rates.html" class="nav-link"><i class="fas fa-dollar-sign"></i><span>Rates</span></a>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <a href="housekeeping.html" class="nav-link"><i class="fas fa-broom"></i><span>Housekeeping</span></a>
+                <a href="nightaudit.html" class="nav-link"><i class="fas fa-moon"></i><span>Night Audit</span></a>
+                <a href="folio.html" class="nav-link"><i class="fas fa-receipt"></i><span>Folio</span></a>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">System</div>
+                <a href="reports.html" class="nav-link"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
+                <a href="users.html" class="nav-link"><i class="fas fa-user-cog"></i><span>Users</span></a>
+                <a href="settings.html" class="nav-link"><i class="fas fa-cog"></i><span>Settings</span></a>
+            </nav>
+        </aside>
+        
+        <main class="main-content">
+            <header class="header">
+                <h1>Front Desk</h1>
+                <div class="header-right">
+                    <span class="header-date" id="currentDate"></span>
+                    <div class="user-info"><div class="user-avatar">JD</div><span>John Doe</span></div>
+                </div>
+            </header>
+            
+            <div class="page-content">
+                <!-- Quick Actions -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-bolt"></i> Quick Actions</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="quick-actions">
+                            <button class="action-btn" onclick="showSection('checkin')"><i class="fas fa-user-plus"></i> Check In</button>
+                            <button class="action-btn" onclick="showSection('checkout')"><i class="fas fa-user-minus"></i> Check Out</button>
+                            <button class="action-btn" onclick="showSection('walkin')"><i class="fas fa-walking"></i> Walk-in</button>
+                            <button class="action-btn" onclick="showSection('roomchange')"><i class="fas fa-exchange-alt"></i> Room Change</button>
+                            <button class="action-btn" onclick="showSection('extend')"><i class="fas fa-calendar-plus"></i> Extend Stay</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid-2">
+                    <!-- Check In Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-user-plus"></i> Check In</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Search reservation or guest name..." id="checkinSearch" onkeyup="searchCheckin()">
+                            </div>
+                            
+                            <div id="checkinResults">
+                                <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">Expected Arrivals Today</h4>
+                                <table class="data-table">
+                                    <thead><tr><th>Room</th><th>Guest</th><th>Time</th><th>Action</th></tr></thead>
+                                    <tbody id="arrivalsTable"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Check Out Section -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-user-minus"></i> Check Out</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Search room or guest..." id="checkoutSearch">
+                            </div>
+                            
+                            <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">Departures Today</h4>
+                            <table class="data-table">
+                                <thead><tr><th>Room</th><th>Guest</th><th>Balance</th><th>Action</th></tr></thead>
+                                <tbody id="departuresTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- In-House Guests -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-bed"></i> In-House Guests</h3>
+                        <div class="quick-actions">
+                            <button class="action-btn" onclick="refreshGuests()"><i class="fas fa-sync"></i> Refresh</button>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Room</th>
+                                <th>Guest Name</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Status</th>
+                                <th>Balance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inHouseTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        const DB = { guests: [], reservations: [], rooms: [], roomTypes: [] };
+        
+        function init() {
+            // Room Types
+            DB.roomTypes = [
+                { id: 'STD', name: 'Standard', baseRate: 99 },
+                { id: 'DLX', name: 'Deluxe', baseRate: 149 },
+                { id: 'SUP', name: 'Superior', baseRate: 199 },
+                { id: 'STE', name: 'Suite', baseRate: 299 }
+            ];
+            
+            // Rooms
+            for (let floor = 1; floor <= 5; floor++) {
+                for (let num = 1; num <= 20; num++) {
+                    const typeIdx = Math.floor(Math.random() * DB.roomTypes.length);
+                    DB.rooms.push({
+                        id: floor * 100 + num,
+                        number: `${floor}${num.toString().padStart(2, '0')}`,
+                        type: DB.roomTypes[typeIdx].id,
+                        status: Math.random() > 0.5 ? 'occupied' : 'available'
+                    });
+                }
+            }
+            
+            // Guests
+            const names = ['James Wilson', 'Maria Garcia', 'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emma Davis'];
+            names.forEach((name, i) => {
+                const parts = name.split(' ');
+                DB.guests.push({
+                    id: `G${String(i+1).padStart(4, '0')}`,
+                    firstName: parts[0],
+                    lastName: parts[1],
+                    email: `${parts[0].toLowerCase()}@email.com`,
+                    phone: `+1 555 ${Math.floor(Math.random()*900)+100} ${Math.floor(Math.random()*9000)+1000}`
+                });
+            });
+            
+            // Reservations
+            const today = new Date();
+            for (let i = 0; i < 40; i++) {
+                const checkIn = new Date(today.getTime() + (Math.random()-0.5)*20*24*60*60*1000);
+                const checkOut = new Date(checkIn.getTime() + (Math.floor(Math.random()*5)+1)*24*60*60*1000);
+                const guest = DB.guests[Math.floor(Math.random() * DB.guests.length)];
+                const room = DB.rooms[Math.floor(Math.random() * DB.rooms.length)];
+                
+                let status = 'confirmed';
+                if (checkIn.toDateString() === today.toDateString()) status = 'due_in';
+                if (checkOut.toDateString() === today.toDateString()) status = 'due_out';
+                if (Math.random() > 0.6) status = 'checked_in';
+                
+                DB.reservations.push({
+                    id: `RES${String(i+1).padStart(4, '0')}`,
+                    guestId: guest.id,
+                    guestName: `${guest.firstName} ${guest.lastName}`,
+                    roomId: room.id,
+                    roomNumber: room.number,
+                    checkIn: checkIn.toISOString().split('T')[0],
+                    checkOut: checkOut.toISOString().split('T')[0],
+                    status: status,
+                    rate: 99 + Math.floor(Math.random() * 200)
+                });
+            }
+            
+            renderAll();
+        }
+        
+        function renderAll() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Arrivals
+            const arrivals = DB.reservations.filter(r => r.checkIn === today || r.status === 'due_in');
+            document.getElementById('arrivalsTable').innerHTML = arrivals.map(r => `
+                <tr>
+                    <td class="mono">${r.roomNumber}</td>
+                    <td>${r.guestName}</td>
+                    <td>${r.checkIn}</td>
+                    <td><button class="btn btn-sm btn-accent" onclick="doCheckIn('${r.id}')">Check In</button></td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary)">No arrivals today</td></tr>';
+            
+            // Departures
+            const departures = DB.reservations.filter(r => r.checkOut === today || r.status === 'due_out');
+            document.getElementById('departuresTable').innerHTML = departures.map(r => `
+                <tr>
+                    <td class="mono">${r.roomNumber}</td>
+                    <td>${r.guestName}</td>
+                    <td>$${Math.floor(Math.random()*500)+50}</td>
+                    <td><button class="btn btn-sm btn-success" onclick="doCheckOut('${r.id}')">Check Out</button></td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary)">No departures today</td></tr>';
+            
+            // In-House
+            const inHouse = DB.reservations.filter(r => r.status === 'checked_in');
+            document.getElementById('inHouseTable').innerHTML = inHouse.map(r => `
+                <tr>
+                    <td class="mono">${r.roomNumber}</td>
+                    <td>${r.guestName}</td>
+                    <td>${r.checkIn}</td>
+                    <td>${r.checkOut}</td>
+                    <td><span class="badge badge-success">In House</span></td>
+                    <td>$${Math.floor(Math.random()*1000)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" onclick="viewFolio('${r.id}')">Folio</button>
+                        <button class="btn btn-sm btn-primary" onclick="extendStay('${r.id}')">Extend</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary)">No in-house guests</td></tr>';
+        }
+        
+        function doCheckIn(id) {
+            const res = DB.reservations.find(r => r.id === id);
+            if (res) {
+                res.status = 'checked_in';
+                const room = DB.rooms.find(r => r.id === res.roomId);
+                if (room) room.status = 'occupied';
+                showToast(`${res.guestName} checked in to Room ${res.roomNumber}`, 'success');
+                renderAll();
+            }
+        }
+        
+        function doCheckOut(id) {
+            const res = DB.reservations.find(r => r.id === id);
+            if (res) {
+                res.status = 'checked_out';
+                const room = DB.rooms.find(r => r.id === res.roomId);
+                if (room) room.status = 'available';
+                showToast(`${res.guestName} checked out from Room ${res.roomNumber}`, 'success');
+                renderAll();
+            }
+        }
+        
+        function searchCheckin() {
+            const q = document.getElementById('checkinSearch').value.toLowerCase();
+            const filtered = DB.reservations.filter(r => 
+                r.guestName.toLowerCase().includes(q) || 
+                r.id.toLowerCase().includes(q) ||
+                r.roomNumber.includes(q)
+            );
+            document.getElementById('arrivalsTable').innerHTML = filtered.slice(0, 5).map(r => `
+                <tr>
+                    <td class="mono">${r.roomNumber}</td>
+                    <td>${r.guestName}</td>
+                    <td>${r.checkIn}</td>
+                    <td><button class="btn btn-sm btn-accent" onclick="doCheckIn('${r.id}')">Check In</button></td>
+                </tr>
+            `).join('');
+        }
+        
+        function refreshGuests() {
+            renderAll();
+            showToast('Guest list refreshed', 'success');
+        }
+        
+        function viewFolio(id) {
+            showToast('Opening folio...', 'success');
+        }
+        
+        function extendStay(id) {
+            const res = DB.reservations.find(r => r.id === id);
+            if (res) {
+                res.checkOut = new Date(new Date(res.checkOut).getTime() + 24*60*60*1000).toISOString().split('T')[0];
+                showToast(`Stay extended for ${res.guestName}`, 'success');
+            }
+        }
+        
+        function showSection(section) {
+            showToast(`Showing ${section} section`, 'success');
+        }
+        
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        init();
+    </script>
+</body>
+</html>

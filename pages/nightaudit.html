@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Night Audit - CloudStay PMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #1a365d; --accent: #ed8936; --success: #38a169; --warning: #d69e2e; --danger: #e53e3e; --info: #3182ce; --bg: #f7fafc; --surface: #ffffff; --text: #1a202c; --text-secondary: #718096; --border: #e2e8f0; --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05); --radius: 8px; }
+        body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+        .page-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: linear-gradient(180deg, var(--primary) 0%, #0f2442 100%); position: fixed; height: 100vh; display: flex; flex-direction: column; }
+        .sidebar-header { height: 64px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 38px; height: 38px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; }
+        .logo-text { color: white; font-weight: 700; font-size: 18px; }
+        .nav-section { padding: 16px 8px 8px; }
+        .nav-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); padding: 0 12px; margin-bottom: 8px; }
+        .nav-link { display: flex; align-items: center; padding: 12px 14px; color: rgba(255,255,255,0.75); gap: 12px; text-decoration: none; border-radius: 6px; margin: 2px 0; transition: all 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.08); color: white; }
+        .nav-link.active { background: var(--accent); color: white; }
+        .nav-link i { width: 18px; text-align: center; }
+        .main-content { flex: 1; margin-left: 260px; }
+        .header { height: 64px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+        .header h1 { font-size: 20px; color: var(--primary); }
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        .header-date { color: var(--text-secondary); }
+        .user-avatar { width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .page-content { padding: 24px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+        .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .card-title i { color: var(--accent); }
+        .card-body { padding: 20px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .audit-section { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; }
+        .audit-header { padding: 14px 16px; background: var(--bg); font-weight: 600; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .audit-row { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+        .audit-row:last-child { border-bottom: none; }
+        .audit-label { color: var(--text-secondary); }
+        .audit-value { font-weight: 600; }
+        .stat-total { font-size: 28px; font-weight: 700; color: var(--primary); }
+        .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; background: var(--primary); color: white; border-radius: 8px; transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 2000; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header"><div class="logo"><div class="logo-icon">CS</div><span class="logo-text">CloudStay</span></div></div>
+            <nav class="nav-section">
+                <div class="nav-title">Main</div>
+                <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+                <a href="reservations.html" class="nav-link"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
+                <a href="frontdesk.html" class="nav-link"><i class="fas fa-concierge-bell"></i><span>Front Desk</span></a>
+                <a href="guests.html" class="nav-link"><i class="fas fa-users"></i><span>Guests</span></a>
+                <a href="rooms.html" class="nav-link"><i class="fas fa-bed"></i><span>Rooms</span></a>
+                <a href="rates.html" class="nav-link"><i class="fas fa-dollar-sign"></i><span>Rates</span></a>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <a href="housekeeping.html" class="nav-link"><i class="fas fa-broom"></i><span>Housekeeping</span></a>
+                <a href="nightaudit.html" class="nav-link active"><i class="fas fa-moon"></i><span>Night Audit</span></a>
+                <a href="folio.html" class="nav-link"><i class="fas fa-receipt"></i><span>Folio</span></a>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">System</div>
+                <a href="reports.html" class="nav-link"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
+                <a href="users.html" class="nav-link"><i class="fas fa-user-cog"></i><span>Users</span></a>
+                <a href="settings.html" class="nav-link"><i class="fas fa-cog"></i><span>Settings</span></a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="header">
+                <h1>Night Audit</h1>
+                <div class="header-right"><span class="header-date" id="currentDate"></span><div class="user-info"><div class="user-avatar">JD</div><span>John Doe</span></div></div>
+            </header>
+            <div class="page-content">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-balance-scale"></i> Night Audit Summary</h3>
+                            <button class="btn btn-accent" onclick="runAudit()"><i class="fas fa-play"></i> Run Audit</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="audit-section">
+                                <div class="audit-header"><span>Guest Statistics</span></div>
+                                <div class="audit-row"><span class="audit-label">In-House Guests</span><span class="audit-value" id="inHouse">0</span></div>
+                                <div class="audit-row"><span class="audit-label">Arrivals Tonight</span><span class="audit-value" id="arrivals">0</span></div>
+                                <div class="audit-row"><span class="audit-label">Departures Tonight</span><span class="audit-value" id="departures">0</span></div>
+                                <div class="audit-row"><span class="audit-label">No Shows</span><span class="audit-value" id="noShows">0</span></div>
+                            </div>
+                            <div class="audit-section">
+                                <div class="audit-header"><span>Room Statistics</span></div>
+                                <div class="audit-row"><span class="audit-label">Occupied Rooms</span><span class="audit-value" id="occupied">0</span></div>
+                                <div class="audit-row"><span class="audit-label">Vacant Rooms</span><span class="audit-value" id="vacant">0</span></div>
+                                <div class="audit-row"><span class="audit-label">Occupancy %</span><span class="audit-value" id="occupancy">0%</span></div>
+                            </div>
+                            <div class="audit-section">
+                                <div class="audit-header"><span>Financial Summary</span></div>
+                                <div class="audit-row"><span class="audit-label">Room Revenue</span><span class="audit-value" id="roomRev">$0</span></div>
+                                <div class="audit-row"><span class="audit-label">F&B Revenue</span><span class="audit-value" id="fnbRev">$0</span></div>
+                                <div class="audit-row"><span class="audit-label">Other Revenue</span><span class="audit-value" id="otherRev">$0</span></div>
+                                <div class="audit-row"><span class="audit-label">Total Revenue</span><span class="audit-value stat-total" id="totalRev">$0</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Discrepancies</h3>
+                        </div>
+                        <div class="card-body" id="discrepancies">
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                <i class="fas fa-check-circle" style="font-size: 48px; color: var(--success); margin-bottom: 16px;"></i>
+                                <p>No discrepancies found</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script>
+        function runAudit() {
+            const inHouse = Math.floor(Math.random() * 50) + 30;
+            const arrivals = Math.floor(Math.random() * 15) + 5;
+            const departures = Math.floor(Math.random() * 10) + 3;
+            const occupied = inHouse + arrivals;
+            const vacant = 100 - occupied;
+            const roomRev = occupied * 120;
+            const fnbRev = Math.floor(roomRev * 0.15);
+            const otherRev = Math.floor(roomRev * 0.05);
+            
+            document.getElementById('inHouse').textContent = inHouse;
+            document.getElementById('arrivals').textContent = arrivals;
+            document.getElementById('departures').textContent = departures;
+            document.getElementById('noShows').textContent = '0';
+            document.getElementById('occupied').textContent = occupied;
+            document.getElementById('vacant').textContent = vacant;
+            document.getElementById('occupancy').textContent = occupied + '%';
+            document.getElementById('roomRev').textContent = '$' + roomRev.toLocaleString();
+            document.getElementById('fnbRev').textContent = '$' + fnbRev.toLocaleString();
+            document.getElementById('otherRev').textContent = '$' + otherRev.toLocaleString();
+            document.getElementById('totalRev').textContent = '$' + (roomRev + fnbRev + otherRev).toLocaleString();
+            
+            showToast('Night audit completed successfully!', 'success');
+        }
+        
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    </script>
+</body>
+</html>

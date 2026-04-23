@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - CloudStay PMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #1a365d; --accent: #ed8936; --success: #38a169; --bg: #f7fafc; --surface: #ffffff; --text: #1a202c; --text-secondary: #718096; --border: #e2e8f0; --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05); --radius: 8px; }
+        body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+        .page-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: linear-gradient(180deg, var(--primary) 0%, #0f2442 100%); position: fixed; height: 100vh; display: flex; flex-direction: column; }
+        .sidebar-header { height: 64px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 38px; height: 38px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; }
+        .logo-text { color: white; font-weight: 700; font-size: 18px; }
+        .nav-section { padding: 16px 8px 8px; }
+        .nav-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); padding: 0 12px; margin-bottom: 8px; }
+        .nav-link { display: flex; align-items: center; padding: 12px 14px; color: rgba(255,255,255,0.75); gap: 12px; text-decoration: none; border-radius: 6px; margin: 2px 0; transition: all 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.08); color: white; }
+        .nav-link.active { background: var(--accent); color: white; }
+        .nav-link i { width: 18px; text-align: center; }
+        .main-content { flex: 1; margin-left: 260px; }
+        .header { height: 64px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+        .header h1 { font-size: 20px; color: var(--primary); }
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        .header-date { color: var(--text-secondary); }
+        .user-avatar { width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .page-content { padding: 24px; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 12px 16px; text-align: left; }
+        .data-table th { background: var(--bg); font-weight: 500; font-size: 12px; text-transform: uppercase; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+        .data-table tr { border-bottom: 1px solid var(--border); }
+        .badge { display: inline-flex; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .badge-success { background: #c6f6d5; color: #22543d; }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header"><div class="logo"><div class="logo-icon">CS</div><span class="logo-text">CloudStay</span></div></div>
+            <nav class="nav-section">
+                <div class="nav-title">Main</div>
+                <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+                <a href="reservations.html" class="nav-link"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
+                <a href="frontdesk.html" class="nav-link"><i class="fas fa-concierge-bell"></i><span>Front Desk</span></a>
+                <a href="guests.html" class="nav-link"><i class="fas fa-users"></i><span>Guests</span></a>
+                <a href="rooms.html" class="nav-link"><i class="fas fa-bed"></i><span>Rooms</span></a>
+                <a href="rates.html" class="nav-link"><i class="fas fa-dollar-sign"></i><span>Rates</span></a>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <a href="housekeeping.html" class="nav-link"><i class="fas fa-broom"></i><span>Housekeeping</span></a>
+                <a href="nightaudit.html" class="nav-link"><i class="fas fa-moon"></i><span>Night Audit</span></a>
+                <a href="folio.html" class="nav-link"><i class="fas fa-receipt"></i><span>Folio</span></a>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">System</div>
+                <a href="reports.html" class="nav-link"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
+                <a href="users.html" class="nav-link active"><i class="fas fa-user-cog"></i><span>Users</span></a>
+                <a href="settings.html" class="nav-link"><i class="fas fa-cog"></i><span>Settings</span></a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <header class="header">
+                <h1>User Management</h1>
+                <div class="header-right"><span class="header-date" id="currentDate"></span><div class="user-info"><div class="user-avatar">JD</div><span>John Doe</span></div></div>
+            </header>
+            <div class="page-content">
+                <div class="toolbar">
+                    <div></div>
+                    <button class="btn btn-accent"><i class="fas fa-plus"></i> Add User</button>
+                </div>
+                <div class="card">
+                    <table class="data-table">
+                        <thead><tr><th>User</th><th>Role</th><th>Email</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="usersTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        const users = [
+            {name: 'John Doe', role: 'Administrator', email: 'john@hotel.com', last: 'Just now', status: 'Active'},
+            {name: 'Jane Smith', role: 'Manager', email: 'jane@hotel.com', last: '2 hours ago', status: 'Active'},
+            {name: 'Mike Johnson', role: 'Front Desk', email: 'mike@hotel.com', last: '1 day ago', status: 'Active'},
+            {name: 'Maria Santos', role: 'Housekeeper', email: 'maria@hotel.com', last: '3 hours ago', status: 'Active'},
+            {name: 'Tom Wilson', role: 'Front Desk', email: 'tom@hotel.com', last: '1 week ago', status: 'Inactive'}
+        ];
+        document.getElementById('usersTable').innerHTML = users.map(u => `<tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="user-avatar">${u.name.split(' ').map(n=>n[0]).join('')}</div>${u.name}</div></td><td>${u.role}</td><td>${u.email}</td><td>${u.last}</td><td><span class="badge badge-success">${u.status}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Edit</button></td></tr>`).join('');
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    </script>
+</body>
+</html>

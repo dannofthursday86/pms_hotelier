@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservations - CloudStay PMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #1a365d; --accent: #ed8936; --success: #38a169; --warning: #d69e2e; --danger: #e53e3e; --info: #3182ce; --bg: #f7fafc; --surface: #ffffff; --text: #1a202c; --text-secondary: #718096; --border: #e2e8f0; --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05); --radius: 8px; }
+        body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+        
+        .page-wrapper { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar { width: 260px; background: linear-gradient(180deg, var(--primary) 0%, #0f2442 100%); position: fixed; height: 100vh; display: flex; flex-direction: column; }
+        .sidebar-header { height: 64px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 38px; height: 38px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; }
+        .logo-text { color: white; font-weight: 700; font-size: 18px; }
+        
+        .nav-section { padding: 16px 8px 8px; }
+        .nav-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); padding: 0 12px; margin-bottom: 8px; }
+        .nav-link { display: flex; align-items: center; padding: 12px 14px; color: rgba(255,255,255,0.75); gap: 12px; text-decoration: none; border-radius: 6px; margin: 2px 0; transition: all 0.2s; }
+        .nav-link:hover { background: rgba(255,255,255,0.08); color: white; }
+        .nav-link.active { background: var(--accent); color: white; }
+        .nav-link i { width: 18px; text-align: center; }
+        
+        /* Main Content */
+        .main-content { flex: 1; margin-left: 260px; }
+        
+        .header { height: 64px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; }
+        .header h1 { font-size: 20px; color: var(--primary); }
+        
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        .header-date { color: var(--text-secondary); }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px; }
+        
+        .page-content { padding: 24px; }
+        
+        /* Toolbar */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+        .search-box { position: relative; }
+        .search-box input { padding: 10px 14px 10px 40px; border: 1px solid var(--border); border-radius: 6px; width: 300px; font-size: 14px; }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        
+        /* Filters */
+        .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-btn { padding: 6px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; }
+        .filter-btn:hover, .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; background: var(--surface); }
+        .tab { padding: 14px 20px; cursor: pointer; font-weight: 500; color: var(--text-secondary); border-bottom: 2px solid transparent; }
+        .tab:hover { color: var(--text); }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        
+        /* Card */
+        .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-size: 16px; font-weight: 600; }
+        
+        /* Table */
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 12px 16px; text-align: left; }
+        .data-table th { background: var(--bg); font-weight: 500; font-size: 12px; text-transform: uppercase; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+        .data-table tr { border-bottom: 1px solid var(--border); }
+        .data-table tr:hover { background: var(--bg); }
+        
+        .mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+        
+        .badge { display: inline-flex; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .badge-success { background: #c6f6d5; color: #22543d; }
+        .badge-danger { background: #fed7d7; color: #742a2a; }
+        .badge-info { background: #bee3f8; color: #2a4365; }
+        .badge-warning { background: #fefcbf; color: #744210; }
+        .badge-pending { background: #e2e8f0; color: #4a5568; }
+        
+        /* Pagination */
+        .pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--border); }
+        .pagination-info { font-size: 13px; color: var(--text-secondary); }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--surface); border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; overflow: auto; }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .modal-title { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .modal-title i { color: var(--accent); }
+        .modal-close { background: transparent; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary); }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 12px; justify-content: flex-end; }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
+        .form-input, .form-select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; font-family: inherit; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent); }
+        
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        
+        /* Calendar */
+        .calendar-wrapper { display: none; }
+        .calendar-wrapper.active { display: block; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .calendar-nav { display: flex; align-items: center; gap: 12px; }
+        .calendar-title { font-size: 18px; font-weight: 600; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-day-header { text-align: center; font-size: 12px; font-weight: 500; color: var(--text-secondary); padding: 10px; }
+        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .calendar-day:hover { background: var(--bg); }
+        .calendar-day.other-month { color: var(--text-secondary); opacity: 0.5; }
+        .calendar-day.today { background: var(--primary); color: white; }
+        .calendar-day.has-booking { background: var(--info); color: white; }
+        
+        /* Toast */
+        .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; background: var(--primary); color: white; border-radius: 8px; transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 2000; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">CS</div>
+                    <span class="logo-text">CloudStay</span>
+                </div>
+            </div>
+            
+            <nav class="nav-section">
+                <div class="nav-title">Main</div>
+                <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+                <a href="reservations.html" class="nav-link active"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
+                <a href="frontdesk.html" class="nav-link"><i class="fas fa-concierge-bell"></i><span>Front Desk</span></a>
+                <a href="guests.html" class="nav-link"><i class="fas fa-users"></i><span>Guests</span></a>
+                <a href="rooms.html" class="nav-link"><i class="fas fa-bed"></i><span>Rooms</span></a>
+                <a href="rates.html" class="nav-link"><i class="fas fa-dollar-sign"></i><span>Rates</span></a>
+            </nav>
+            
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <a href="housekeeping.html" class="nav-link"><i class="fas fa-broom"></i><span>Housekeeping</span></a>
+                <a href="nightaudit.html" class="nav-link"><i class="fas fa-moon"></i><span>Night Audit</span></a>
+                <a href="folio.html" class="nav-link"><i class="fas fa-receipt"></i><span>Folio</span></a>
+            </nav>
+            
+            <nav class="nav-section">
+                <div class="nav-title">System</div>
+                <a href="reports.html" class="nav-link"><i class="fas fa-chart-bar"></i><span>Reports</span></a>
+                <a href="users.html" class="nav-link"><i class="fas fa-user-cog"></i><span>Users</span></a>
+                <a href="settings.html" class="nav-link"><i class="fas fa-cog"></i><span>Settings</span></a>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h1>Reservations</h1>
+                <div class="header-right">
+                    <span class="header-date" id="currentDate"></span>
+                    <div class="user-info">
+                        <div class="user-avatar">JD</div>
+                        <span>John Doe</span>
+                    </div>
+                </div>
+            </header>
+            
+            <div class="page-content">
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search by guest name, confirmation..." id="searchInput" onkeyup="searchReservations()">
+                    </div>
+                    <button class="btn btn-accent" onclick="openModal('reservationModal')">
+                        <i class="fas fa-plus"></i> New Reservation
+                    </button>
+                </div>
+                
+                <!-- Filters -->
+                <div class="filters">
+                    <button class="filter-btn active" onclick="filterReservations('all')">All</button>
+                    <button class="filter-btn" onclick="filterReservations('confirmed')">Confirmed</button>
+                    <button class="filter-btn" onclick="filterReservations('due_in')">Due In</button>
+                    <button class="filter-btn" onclick="filterReservations('due_out')">Due Out</button>
+                    <button class="filter-btn" onclick="filterReservations('checked_in')">Checked In</button>
+                    <button class="filter-btn" onclick="filterReservations('checked_out')">Checked Out</button>
+                    <button class="filter-btn" onclick="filterReservations('cancelled')">Cancelled</button>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="tabs">
+                    <div class="tab active" onclick="switchView('list')"><i class="fas fa-list"></i> List View</div>
+                    <div class="tab" onclick="switchView('calendar')"><i class="fas fa-calendar"></i> Calendar</div>
+                </div>
+                
+                <!-- List View -->
+                <div class="card" id="listView">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Confirmation #</th>
+                                <th>Guest Name</th>
+                                <th>Room</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Status</th>
+                                <th>Rate</th>
+                                <th>Source</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservationsTable"></tbody>
+                    </table>
+                    <div class="pagination">
+                        <span class="pagination-info" id="paginationInfo">Showing 0 reservations</span>
+                    </div>
+                </div>
+                
+                <!-- Calendar View -->
+                <div class="calendar-wrapper" id="calendarView">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="calendar-header">
+                                <div class="calendar-nav">
+                                    <button class="btn btn-secondary btn-sm" onclick="prevMonth()"><i class="fas fa-chevron-left"></i></button>
+                                    <span class="calendar-title" id="calendarTitle">April 2026</span>
+                                    <button class="btn btn-secondary btn-sm" onclick="nextMonth()"><i class="fas fa-chevron-right"></i></button>
+                                </div>
+                                <button class="btn btn-accent btn-sm" onclick="goToToday()">Today</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="calendar-grid" id="calendarGrid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- New Reservation Modal -->
+    <div class="modal-overlay" id="reservationModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-calendar-plus"></i> New Reservation</h3>
+                <button class="modal-close" onclick="closeModal('reservationModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Guest *</label>
+                        <select class="form-select" id="resGuest"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Room Type *</label>
+                        <select class="form-select" id="resRoomType" onchange="loadRooms()"></select>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Room Number</label>
+                        <select class="form-select" id="resRoom"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rate Plan *</label>
+                        <select class="form-select" id="resRate">
+                            <option value="Standard">Standard Rate</option>
+                            <option value="Corporate">Corporate Rate</option>
+                            <option value="Weekend">Weekend Rate</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Check-in *</label>
+                        <input type="date" class="form-input" id="resCheckin">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Check-out *</label>
+                        <input type="date" class="form-input" id="resCheckout">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Booking Source</label>
+                    <select class="form-select" id="resSource">
+                        <option value="Direct">Direct Booking</option>
+                        <option value="Booking.com">Booking.com</option>
+                        <option value="Expedia">Expedia</option>
+                        <option value="Agoda">Agoda</option>
+                        <option value="Walk-in">Walk-in</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Special Requests</label>
+                    <textarea class="form-input" rows="2" id="resNotes" placeholder="Special requests..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('reservationModal')">Cancel</button>
+                <button class="btn btn-accent" onclick="createReservation()">Create Reservation</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // Data Store
+        const DB = { guests: [], reservations: [], rooms: [], roomTypes: [] };
+        
+        let currentFilter = 'all';
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        
+        // Initialize
+        function init() {
+            // Room Types
+            DB.roomTypes = [
+                { id: 'STD', name: 'Standard', baseRate: 99 },
+                { id: 'DLX', name: 'Deluxe', baseRate: 149 },
+                { id: 'SUP', name: 'Superior', baseRate: 199 },
+                { id: 'STE', name: 'Suite', baseRate: 299 }
+            ];
+            
+            // Rooms
+            for (let floor = 1; floor <= 5; floor++) {
+                for (let num = 1; num <= 20; num++) {
+                    const typeIdx = Math.floor(Math.random() * DB.roomTypes.length);
+                    DB.rooms.push({
+                        id: floor * 100 + num,
+                        number: `${floor}${num.toString().padStart(2, '0')}`,
+                        type: DB.roomTypes[typeIdx].id,
+                        status: 'available'
+                    });
+                }
+            }
+            
+            // Guests
+            const names = ['James Wilson', 'Maria Garcia', 'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emma Davis', 'Robert Miller', 'Lisa Anderson', 'David Taylor', 'Jennifer Thomas'];
+            names.forEach((name, i) => {
+                const parts = name.split(' ');
+                DB.guests.push({
+                    id: `G${String(i+1).padStart(4, '0')}`,
+                    firstName: parts[0],
+                    lastName: parts[1],
+                    email: `${parts[0].toLowerCase()}@email.com`,
+                    phone: `+1 555 ${Math.floor(Math.random()*900)+100} ${Math.floor(Math.random()*9000)+1000}`
+                });
+            });
+            
+            // Reservations
+            const today = new Date();
+            for (let i = 0; i < 50; i++) {
+                const checkIn = new Date(today.getTime() + (Math.random()-0.5)*30*24*60*60*1000);
+                const checkOut = new Date(checkIn.getTime() + (Math.floor(Math.random()*5)+1)*24*60*60*1000);
+                const guest = DB.guests[Math.floor(Math.random() * DB.guests.length)];
+                const room = DB.rooms[Math.floor(Math.random() * DB.rooms.length)];
+                
+                let status = 'confirmed';
+                if (checkIn.toDateString() === today.toDateString()) status = 'due_in';
+                if (checkOut.toDateString() === today.toDateString()) status = 'due_out';
+                
+                DB.reservations.push({
+                    id: `RES${String(i+1).padStart(4, '0')}`,
+                    guestId: guest.id,
+                    guestName: `${guest.firstName} ${guest.lastName}`,
+                    roomId: room.id,
+                    roomNumber: room.number,
+                    checkIn: checkIn.toISOString().split('T')[0],
+                    checkOut: checkOut.toISOString().split('T')[0],
+                    status: status,
+                    rate: 99 + Math.floor(Math.random() * 200),
+                    source: ['Direct', 'Booking.com', 'Expedia', 'Agoda'][Math.floor(Math.random() * 4)]
+                });
+            }
+            
+            populateSelects();
+            renderReservations();
+            renderCalendar();
+        }
+        
+        function populateSelects() {
+            // Guests
+            document.getElementById('resGuest').innerHTML = '<option value="">Select Guest</option>' + 
+                DB.guests.map(g => `<option value="${g.id}">${g.firstName} ${g.lastName}</option>`).join('');
+            
+            // Room Types
+            document.getElementById('resRoomType').innerHTML = '<option value="">Select Room Type</option>' + 
+                DB.roomTypes.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+            
+            // Set dates
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('resCheckin').value = today;
+            document.getElementById('resCheckout').value = new Date(Date.now() + 2*24*60*60*1000).toISOString().split('T')[0];
+        }
+        
+        function loadRooms() {
+            const type = document.getElementById('resRoomType').value;
+            const available = DB.rooms.filter(r => r.type === type && r.status === 'available');
+            document.getElementById('resRoom').innerHTML = '<option value="">Select Room</option>' + 
+                available.map(r => `<option value="${r.id}">${r.number}</option>`).join('');
+        }
+        
+        function renderReservations(filter = currentFilter) {
+            let filtered = DB.reservations;
+            
+            if (filter !== 'all') {
+                filtered = DB.reservations.filter(r => r.status === filter);
+            }
+            
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            if (search) {
+                filtered = filtered.filter(r => 
+                    r.guestName.toLowerCase().includes(search) || 
+                    r.id.toLowerCase().includes(search)
+                );
+            }
+            
+            document.getElementById('reservationsTable').innerHTML = filtered.map(r => {
+                const badgeClass = {
+                    'confirmed': 'badge-info',
+                    'due_in': 'badge-warning',
+                    'due_out': 'badge-warning',
+                    'checked_in': 'badge-success',
+                    'checked_out': 'badge-pending',
+                    'cancelled': 'badge-danger'
+                }[r.status] || 'badge-pending';
+                
+                return `
+                    <tr>
+                        <td class="mono">${r.id}</td>
+                        <td>${r.guestName}</td>
+                        <td class="mono">${r.roomNumber}</td>
+                        <td>${r.checkIn}</td>
+                        <td>${r.checkOut}</td>
+                        <td><span class="badge ${badgeClass}">${r.status}</span></td>
+                        <td>$${r.rate}</td>
+                        <td>${r.source}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" onclick="viewReservation('${r.id}')">View</button>
+                            <button class="btn btn-sm btn-primary" onclick="editReservation('${r.id}')">Edit</button>
+                            <button class="btn btn-sm btn-accent" onclick="checkIn('${r.id}')">Check In</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            document.getElementById('paginationInfo').textContent = `Showing ${filtered.length} reservations`;
+        }
+        
+        function filterReservations(status) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderReservations();
+        }
+        
+        function searchReservations() {
+            renderReservations();
+        }
+        
+        // Calendar
+        function renderCalendar() {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('calendarTitle').textContent = `${months[currentMonth]} ${currentYear}`;
+            
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+            
+            let html = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="calendar-day-header">${d}</div>`).join('');
+            
+            for (let i = firstDay - 1; i >= 0; i--) {
+                html += `<div class="calendar-day other-month">${daysInPrevMonth - i}</div>`;
+            }
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                const hasBooking = DB.reservations.some(r => r.checkIn === dateStr || r.checkOut === dateStr);
+                const isToday = dateStr === today;
+                
+                html += `<div class="calendar-day ${hasBooking ? 'has-booking' : ''} ${isToday ? 'today' : ''}">${i}</div>`;
+            }
+            
+            document.getElementById('calendarGrid').innerHTML = html;
+        }
+        
+        function prevMonth() {
+            currentMonth--;
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            renderCalendar();
+        }
+        
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            renderCalendar();
+        }
+        
+        function goToToday() {
+            currentMonth = new Date().getMonth();
+            currentYear = new Date().getFullYear();
+            renderCalendar();
+        }
+        
+        function switchView(view) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (view === 'list') {
+                document.getElementById('listView').style.display = 'block';
+                document.getElementById('calendarView').classList.remove('active');
+            } else {
+                document.getElementById('listView').style.display = 'none';
+                document.getElementById('calendarView').classList.add('active');
+                renderCalendar();
+            }
+        }
+        
+        // Actions
+        function createReservation() {
+            const guestId = document.getElementById('resGuest').value;
+            const roomType = document.getElementById('resRoomType').value;
+            const roomId = document.getElementById('resRoom').value;
+            const checkIn = document.getElementById('resCheckin').value;
+            const checkOut = document.getElementById('resCheckout').value;
+            
+            if (!guestId || !roomType || !checkIn || !checkOut) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+            
+            const guest = DB.guests.find(g => g.id === guestId);
+            const room = DB.rooms.find(r => r.id == roomId);
+            
+            const newRes = {
+                id: `RES${String(DB.reservations.length + 1).padStart(4, '0')}`,
+                guestId: guest.id,
+                guestName: `${guest.firstName} ${guest.lastName}`,
+                roomId: parseInt(roomId) || room?.id || 1,
+                roomNumber: room?.number || '101',
+                checkIn: checkIn,
+                checkOut: checkOut,
+                status: 'confirmed',
+                rate: 99 + Math.floor(Math.random() * 200),
+                source: document.getElementById('resSource').value
+            };
+            
+            DB.reservations.push(newRes);
+            
+            if (room) room.status = 'reserved';
+            
+            closeModal('reservationModal');
+            showToast('Reservation created successfully!', 'success');
+            renderReservations();
+            renderCalendar();
+            
+            // Reset form
+            document.getElementById('resGuest').value = '';
+            document.getElementById('resRoomType').value = '';
+            document.getElementById('resRoom').value = '';
+        }
+        
+        function viewReservation(id) {
+            const res = DB.reservations.find(r => r.id === id);
+            if (res) {
+                showToast(`Reservation ${res.id}: ${res.guestName} - Room ${res.roomNumber}`, 'success');
+            }
+        }
+        
+        function editReservation(id) {
+            const res = DB.reservations.find(r => r.id === id);
+            if (res) {
+                showToast(`Editing reservation ${res.id}`, 'success');
+            }
+        }
+        
+        function checkIn(id) {
+            const res = DB.reservations.find(r => r.id === id);
+            if (res) {
+                res.status = 'checked_in';
+                const room = DB.rooms.find(r => r.id === res.roomId);
+                if (room) room.status = 'occupied';
+                showToast(`${res.guestName} checked in to Room ${res.roomNumber}`, 'success');
+                renderReservations();
+            }
+        }
+        
+        // Modal
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        
+        // Toast
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        // Init
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        init();
+    </script>
+</body>
+</html>
