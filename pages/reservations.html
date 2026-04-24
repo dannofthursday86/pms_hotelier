@@ -316,89 +316,31 @@
     
     <div class="toast" id="toast"></div>
     
+    <script src="CloudStore.js"></script>
     <script>
-        // Data Store
-        const DB = { guests: [], reservations: [], rooms: [], roomTypes: [] };
-        
         let currentFilter = 'all';
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
         
         // Initialize
-        function init() {
-            // Room Types
-            DB.roomTypes = [
-                { id: 'STD', name: 'Standard', baseRate: 99 },
-                { id: 'DLX', name: 'Deluxe', baseRate: 149 },
-                { id: 'SUP', name: 'Superior', baseRate: 199 },
-                { id: 'STE', name: 'Suite', baseRate: 299 }
-            ];
-            
-            // Rooms
-            for (let floor = 1; floor <= 5; floor++) {
-                for (let num = 1; num <= 20; num++) {
-                    const typeIdx = Math.floor(Math.random() * DB.roomTypes.length);
-                    DB.rooms.push({
-                        id: floor * 100 + num,
-                        number: `${floor}${num.toString().padStart(2, '0')}`,
-                        type: DB.roomTypes[typeIdx].id,
-                        status: 'available'
-                    });
-                }
-            }
-            
-            // Guests
-            const names = ['James Wilson', 'Maria Garcia', 'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emma Davis', 'Robert Miller', 'Lisa Anderson', 'David Taylor', 'Jennifer Thomas'];
-            names.forEach((name, i) => {
-                const parts = name.split(' ');
-                DB.guests.push({
-                    id: `G${String(i+1).padStart(4, '0')}`,
-                    firstName: parts[0],
-                    lastName: parts[1],
-                    email: `${parts[0].toLowerCase()}@email.com`,
-                    phone: `+1 555 ${Math.floor(Math.random()*900)+100} ${Math.floor(Math.random()*9000)+1000}`
-                });
-            });
-            
-            // Reservations
-            const today = new Date();
-            for (let i = 0; i < 50; i++) {
-                const checkIn = new Date(today.getTime() + (Math.random()-0.5)*30*24*60*60*1000);
-                const checkOut = new Date(checkIn.getTime() + (Math.floor(Math.random()*5)+1)*24*60*60*1000);
-                const guest = DB.guests[Math.floor(Math.random() * DB.guests.length)];
-                const room = DB.rooms[Math.floor(Math.random() * DB.rooms.length)];
-                
-                let status = 'confirmed';
-                if (checkIn.toDateString() === today.toDateString()) status = 'due_in';
-                if (checkOut.toDateString() === today.toDateString()) status = 'due_out';
-                
-                DB.reservations.push({
-                    id: `RES${String(i+1).padStart(4, '0')}`,
-                    guestId: guest.id,
-                    guestName: `${guest.firstName} ${guest.lastName}`,
-                    roomId: room.id,
-                    roomNumber: room.number,
-                    checkIn: checkIn.toISOString().split('T')[0],
-                    checkOut: checkOut.toISOString().split('T')[0],
-                    status: status,
-                    rate: 99 + Math.floor(Math.random() * 200),
-                    source: ['Direct', 'Booking.com', 'Expedia', 'Agoda'][Math.floor(Math.random() * 4)]
-                });
-            }
-            
+        async function init() {
+            await CloudStore.init();
             populateSelects();
             renderReservations();
             renderCalendar();
         }
         
         function populateSelects() {
+            const guests = CloudStore.data.guests;
+            const roomTypes = CloudStore.data.roomTypes;
+            
             // Guests
             document.getElementById('resGuest').innerHTML = '<option value="">Select Guest</option>' + 
-                DB.guests.map(g => `<option value="${g.id}">${g.firstName} ${g.lastName}</option>`).join('');
+                guests.map(g => `<option value="${g.id}">${g.firstName} ${g.lastName}</option>`).join('');
             
             // Room Types
             document.getElementById('resRoomType').innerHTML = '<option value="">Select Room Type</option>' + 
-                DB.roomTypes.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+                roomTypes.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
             
             // Set dates
             const today = new Date().toISOString().split('T')[0];
@@ -408,12 +350,13 @@
         
         function loadRooms() {
             const type = document.getElementById('resRoomType').value;
-            const available = DB.rooms.filter(r => r.type === type && r.status === 'available');
+            const available = CloudStore.data.rooms.filter(r => r.type === type && r.status === 'available');
             document.getElementById('resRoom').innerHTML = '<option value="">Select Room</option>' + 
                 available.map(r => `<option value="${r.id}">${r.number}</option>`).join('');
         }
         
         function renderReservations(filter = currentFilter) {
+            const DB = CloudStore.data;
             let filtered = DB.reservations;
             
             if (filter !== 'all') {
@@ -490,7 +433,7 @@
             
             for (let i = 1; i <= daysInMonth; i++) {
                 const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-                const hasBooking = DB.reservations.some(r => r.checkIn === dateStr || r.checkOut === dateStr);
+                const hasBooking = CloudStore.data.reservations.some(r => r.checkIn === dateStr || r.checkOut === dateStr);
                 const isToday = dateStr === today;
                 
                 html += `<div class="calendar-day ${hasBooking ? 'has-booking' : ''} ${isToday ? 'today' : ''}">${i}</div>`;
@@ -532,7 +475,7 @@
         }
         
         // Actions
-        function createReservation() {
+        async function createReservation() {
             const guestId = document.getElementById('resGuest').value;
             const roomType = document.getElementById('resRoomType').value;
             const roomId = document.getElementById('resRoom').value;
@@ -544,25 +487,21 @@
                 return;
             }
             
-            const guest = DB.guests.find(g => g.id === guestId);
-            const room = DB.rooms.find(r => r.id == roomId);
+            const guest = CloudStore.data.guests.find(g => g.id === guestId);
+            const room = CloudStore.data.rooms.find(r => r.id == roomId);
             
-            const newRes = {
-                id: `RES${String(DB.reservations.length + 1).padStart(4, '0')}`,
+            await CloudStore.createReservation({
                 guestId: guest.id,
                 guestName: `${guest.firstName} ${guest.lastName}`,
                 roomId: parseInt(roomId) || room?.id || 1,
                 roomNumber: room?.number || '101',
                 checkIn: checkIn,
                 checkOut: checkOut,
-                status: 'confirmed',
                 rate: 99 + Math.floor(Math.random() * 200),
                 source: document.getElementById('resSource').value
-            };
+            });
             
-            DB.reservations.push(newRes);
-            
-            if (room) room.status = 'reserved';
+            if (room) await CloudStore.updateRoom(room.id, { status: 'reserved' });
             
             closeModal('reservationModal');
             showToast('Reservation created successfully!', 'success');
@@ -576,25 +515,24 @@
         }
         
         function viewReservation(id) {
-            const res = DB.reservations.find(r => r.id === id);
+            const res = CloudStore.data.reservations.find(r => r.id === id);
             if (res) {
                 showToast(`Reservation ${res.id}: ${res.guestName} - Room ${res.roomNumber}`, 'success');
             }
         }
         
         function editReservation(id) {
-            const res = DB.reservations.find(r => r.id === id);
+            const res = CloudStore.data.reservations.find(r => r.id === id);
             if (res) {
                 showToast(`Editing reservation ${res.id}`, 'success');
             }
         }
         
-        function checkIn(id) {
-            const res = DB.reservations.find(r => r.id === id);
+        async function checkIn(id) {
+            const res = CloudStore.data.reservations.find(r => r.id === id);
             if (res) {
-                res.status = 'checked_in';
-                const room = DB.rooms.find(r => r.id === res.roomId);
-                if (room) room.status = 'occupied';
+                await CloudStore.updateReservation(id, { status: 'checked_in' });
+                if (res.roomId) await CloudStore.updateRoom(res.roomId, { status: 'occupied' });
                 showToast(`${res.guestName} checked in to Room ${res.roomNumber}`, 'success');
                 renderReservations();
             }

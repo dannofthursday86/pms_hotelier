@@ -253,153 +253,109 @@
     
     <div class="toast" id="toast"></div>
     
+    <script src="CloudStore.js"></script>
     <script>
-        const DB = { guests: [] };
         let currentFilter = 'all';
         
-        function init() {
-            const names = ['James Wilson', 'Maria Garcia', 'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emma Davis', 'Robert Miller', 'Lisa Anderson', 'David Taylor', 'Jennifer Thomas', 'Christopher Lee', 'Amanda White', 'Daniel Harris', 'Emily Clark', 'Matthew Lewis', 'Ashley Walker', 'Kevin Martin', 'Rachel Green', 'Tom Anderson', 'Nina Rodriguez'];
-            const countries = ['USA', 'UK', 'Spain', 'Germany', 'France', 'Italy', 'Japan', 'Australia'];
-            const types = ['Regular', 'Regular', 'Regular', 'VIP', 'Corporate'];
-            
-            names.forEach((name, i) => {
-                const parts = name.split(' ');
-                DB.guests.push({
-                    id: `G${String(i+1).padStart(4, '0')}`,
-                    firstName: parts[0],
-                    lastName: parts[1],
-                    email: `${parts[0].toLowerCase()}.${parts[1].toLowerCase()}@email.com`,
-                    phone: `+1 555 ${Math.floor(Math.random()*900)+100} ${Math.floor(Math.random()*9000)+1000}`,
-                    country: countries[Math.floor(Math.random() * countries.length)],
-                    type: types[Math.floor(Math.random() * types.length)],
-                    stays: Math.floor(Math.random() * 20) + 1,
-                    spent: Math.floor(Math.random() * 10000) + 500,
-                    lastStay: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                    idType: 'Passport',
-                    idNumber: `P${Math.floor(Math.random() * 90000000)}`
-                });
-            });
-            
+        async function init() {
+            await CloudStore.init();
             renderGuests();
         }
         
         function renderGuests() {
-            let filtered = DB.guests;
+            let filtered = CloudStore.data.guests;
             
             if (currentFilter !== 'all') {
-                filtered = DB.guests.filter(g => g.type === currentFilter);
+                filtered = CloudStore.data.guests.filter(g => g.type === currentFilter);
             }
             
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            if (search) {
-                filtered = filtered.filter(g => 
-                    g.firstName.toLowerCase().includes(search) || 
-                    g.lastName.toLowerCase().includes(search) ||
-                    g.email.toLowerCase().includes(search) ||
-                    g.phone.includes(search)
-                );
-            }
-            
-            document.getElementById('guestsTable').innerHTML = filtered.map(g => `
+            document.getElementById('guestTable').innerHTML = filtered.slice(0, 20).map(g => `
                 <tr>
-                    <td>
-                        <div style="display:flex;align-items:center;gap:12px;">
-                            <div class="guest-avatar">${g.firstName[0]}${g.lastName[0]}</div>
-                            <div>
-                                <div style="font-weight:500;">${g.firstName} ${g.lastName}</div>
-                                <div style="font-size:12px;color:var(--text-secondary);">${g.id}</div>
-                            </div>
-                        </div>
-                    </td>
+                    <td class="mono">${g.id}</td>
+                    <td>${g.firstName} ${g.lastName}</td>
                     <td>${g.email}</td>
                     <td>${g.phone}</td>
                     <td>${g.country}</td>
-                    <td><span class="badge ${g.type === 'VIP' ? 'badge-vip' : g.type === 'Corporate' ? 'badge-info' : 'badge-success'}">${g.type}</span></td>
-                    <td>${g.stays}</td>
-                    <td>$${g.spent.toLocaleString()}</td>
-                    <td>${g.lastStay}</td>
+                    <td><span class="badge badge-${g.type === 'VIP' ? 'warning' : 'info'}">${g.type}</span></td>
+                    <td>${g.stays || 0}</td>
+                    <td>$${g.spent || 0}</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" onclick="viewGuest('${g.id}')">View</button>
+                        <button class="btn btn-sm btn-primary" onclick="editGuest('${g.id}')">Edit</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="9">No guests found</td></tr>';
+            
+            document.getElementById('guestCount').textContent = filtered.length;
+        }
+        
+        function filterGuests(type) {
+            currentFilter = type;
+            renderGuests();
+        }
+        
+        function searchGuests() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = CloudStore.data.guests.filter(g => 
+                g.firstName.toLowerCase().includes(q) || 
+                g.lastName.toLowerCase().includes(q) ||
+                g.email.toLowerCase().includes(q) ||
+                g.id.toLowerCase().includes(q)
+            );
+            document.getElementById('guestTable').innerHTML = filtered.slice(0, 20).map(g => `
+                <tr>
+                    <td class="mono">${g.id}</td>
+                    <td>${g.firstName} ${g.lastName}</td>
+                    <td>${g.email}</td>
+                    <td>${g.phone}</td>
+                    <td>${g.country}</td>
+                    <td><span class="badge badge-${g.type === 'VIP' ? 'warning' : 'info'}">${g.type}</span></td>
+                    <td>${g.stays || 0}</td>
+                    <td>$${g.spent || 0}</td>
                     <td>
                         <button class="btn btn-sm btn-secondary" onclick="viewGuest('${g.id}')">View</button>
                         <button class="btn btn-sm btn-primary" onclick="editGuest('${g.id}')">Edit</button>
                     </td>
                 </tr>
             `).join('');
-            
-            document.getElementById('paginationInfo').textContent = `Showing ${filtered.length} guests`;
         }
         
-        function filterGuests(type) {
-            currentFilter = type;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            renderGuests();
-        }
-        
-        function searchGuests() {
-            renderGuests();
-        }
-        
-        function createGuest() {
+        async function createGuest() {
             const firstName = document.getElementById('guestFirstName').value;
             const lastName = document.getElementById('guestLastName').value;
             const email = document.getElementById('guestEmail').value;
+            const phone = document.getElementById('guestPhone').value;
+            const country = document.getElementById('guestCountry').value;
+            const type = document.getElementById('guestType').value;
             
-            if (!firstName || !lastName || !email) {
+            if (firstName && lastName && email) {
+                await CloudStore.createGuest({ firstName, lastName, email, phone, country, type });
+                closeModal('guestModal');
+                showToast('Guest created successfully', 'success');
+                renderGuests();
+            } else {
                 showToast('Please fill required fields', 'error');
-                return;
             }
-            
-            DB.guests.push({
-                id: `G${String(DB.guests.length + 1).padStart(4, '0')}`,
-                firstName,
-                lastName,
-                email,
-                phone: document.getElementById('guestPhone').value,
-                country: document.getElementById('guestCountry').value,
-                type: document.getElementById('guestType').value,
-                stays: 0,
-                spent: 0,
-                lastStay: '-',
-                idType: document.getElementById('guestIdType').value,
-                idNumber: document.getElementById('guestIdNumber').value
-            });
-            
-            closeModal('guestModal');
-            showToast('Guest added successfully!', 'success');
-            renderGuests();
-            
-            // Reset form
-            document.getElementById('guestFirstName').value = '';
-            document.getElementById('guestLastName').value = '';
-            document.getElementById('guestEmail').value = '';
-            document.getElementById('guestPhone').value = '';
         }
         
         function viewGuest(id) {
-            const guest = DB.guests.find(g => g.id === id);
-            if (guest) {
-                showToast(`Viewing: ${guest.firstName} ${guest.lastName}`, 'success');
-            }
+            showToast('Viewing guest details...', 'success');
         }
         
         function editGuest(id) {
-            const guest = DB.guests.find(g => g.id === id);
-            if (guest) {
-                showToast(`Editing: ${guest.firstName} ${guest.lastName}`, 'success');
-            }
+            showToast('Editing guest...', 'success');
         }
         
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         
         function showToast(msg, type) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.className = `toast ${type} show`;
-            setTimeout(() => toast.classList.remove('show'), 3000);
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show ' + (type || '');
+            setTimeout(() => t.classList.remove('show'), 3000);
         }
         
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         init();
     </script>
 </body>

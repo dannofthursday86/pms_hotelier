@@ -283,90 +283,16 @@
         </main>
     </div>
     
+    <script src="CloudStore.js"></script>
     <script>
-        // Data Store
-        const DB = { guests: [], reservations: [], rooms: [], roomTypes: [], activities: [] };
-        
-        // Initialize Data
-        function init() {
-            // Room Types
-            DB.roomTypes = [
-                { id: 'STD', name: 'Standard', baseRate: 99 },
-                { id: 'DLX', name: 'Deluxe', baseRate: 149 },
-                { id: 'SUP', name: 'Superior', baseRate: 199 },
-                { id: 'STE', name: 'Suite', baseRate: 299 },
-                { id: 'PENT', name: 'Penthouse', baseRate: 499 }
-            ];
-            
-            // Generate 100 Rooms
-            let roomId = 1;
-            const statuses = ['available', 'available', 'occupied', 'occupied', 'reserved', 'maintenance'];
-            for (let floor = 1; floor <= 5; floor++) {
-                for (let num = 1; num <= 20; num++) {
-                    const typeIdx = Math.floor(Math.random() * DB.roomTypes.length);
-                    DB.rooms.push({
-                        id: roomId++,
-                        number: `${floor}${num.toString().padStart(2, '0')}`,
-                        type: DB.roomTypes[typeIdx].id,
-                        status: statuses[Math.floor(Math.random() * statuses.length)],
-                        rate: DB.roomTypes[typeIdx].baseRate
-                    });
-                }
-            }
-            
-            // Guest Names
-            const names = ['James Wilson', 'Maria Garcia', 'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emma Davis', 'Robert Miller', 'Lisa Anderson'];
-            names.forEach((name, i) => {
-                const parts = name.split(' ');
-                DB.guests.push({
-                    id: `G${String(i+1).padStart(4, '0')}`,
-                    firstName: parts[0],
-                    lastName: parts[1],
-                    email: `${parts[0].toLowerCase()}@email.com`,
-                    phone: `+1 555 ${Math.floor(Math.random()*900)+100} ${Math.floor(Math.random()*9000)+1000}`,
-                    country: ['USA', 'UK', 'Spain'][Math.floor(Math.random()*3)],
-                    type: Math.random() > 0.7 ? 'VIP' : 'Regular'
-                });
-            });
-            
-            // Reservations
-            const today = new Date();
-            for (let i = 0; i < 30; i++) {
-                const checkIn = new Date(today.getTime() + (Math.random()-0.4)*14*24*60*60*1000);
-                const checkOut = new Date(checkIn.getTime() + (Math.floor(Math.random()*4)+1)*24*60*60*1000);
-                const guest = DB.guests[Math.floor(Math.random() * DB.guests.length)];
-                const room = DB.rooms[Math.floor(Math.random() * DB.rooms.length)];
-                const status = checkIn.toDateString() === today.toDateString() ? 'due_in' : 
-                            checkOut.toDateString() === today.toDateString() ? 'due_out' : 'confirmed';
-                
-                DB.reservations.push({
-                    id: `RES${String(i+1).padStart(4, '0')}`,
-                    guestId: guest.id,
-                    guestName: `${guest.firstName} ${guest.lastName}`,
-                    roomId: room.id,
-                    roomNumber: room.number,
-                    checkIn: checkIn.toISOString().split('T')[0],
-                    checkOut: checkOut.toISOString().split('T')[0],
-                    status: status,
-                    rate: 99 + Math.floor(Math.random()*200)
-                });
-            }
-            
-            // Activities
-            const actions = ['checked in', 'checked out', 'created reservation', 'updated profile'];
-            for (let i = 0; i < 10; i++) {
-                const guest = DB.guests[Math.floor(Math.random() * DB.guests.length)];
-                DB.activities.push({
-                    guest: `${guest.firstName} ${guest.lastName}`,
-                    action: actions[Math.floor(Math.random() * actions.length)],
-                    time: new Date(Date.now() - Math.random() * 8*60*60*1000).toISOString()
-                });
-            }
-            
+        // Use CloudStore for data
+        async function init() {
+            await CloudStore.init();
             renderDashboard();
         }
         
         function renderDashboard() {
+            const DB = CloudStore.data;
             const today = new Date().toISOString().split('T')[0];
             
             // Stats
@@ -374,7 +300,7 @@
             const departures = DB.reservations.filter(r => r.checkOut === today && r.status === 'due_out').length;
             const available = DB.rooms.filter(r => r.status === 'available').length;
             const total = DB.rooms.length;
-            const occupancy = Math.round(((total - available) / total) * 100);
+            const occupancy = total > 0 ? Math.round(((total - available) / total) * 100) : 0;
             
             document.getElementById('arrivals').textContent = arrivals;
             document.getElementById('departures').textContent = departures;
@@ -429,7 +355,7 @@
                 return `
                     <div class="room-card ${r.status}">
                         <div class="room-number">${r.number}</div>
-                        <div class="room-type">${type.name}</div>
+                        <div class="room-type">${type ? type.name : 'Standard'}</div>
                         <span class="badge badge-${r.status === 'available' ? 'success' : r.status === 'occupied' ? 'danger' : r.status === 'reserved' ? 'info' : 'warning'}">${r.status}</span>
                     </div>
                 `;

@@ -208,58 +208,39 @@
     
     <div class="toast" id="toast"></div>
     
+    <script src="CloudStore.js"></script>
     <script>
-        const DB = { rooms: [], roomTypes: [] };
         let currentFilter = 'all';
         
-        function init() {
-            DB.roomTypes = [
-                { id: 'STD', name: 'Standard', baseRate: 99 },
-                { id: 'DLX', name: 'Deluxe', baseRate: 149 },
-                { id: 'SUP', name: 'Superior', baseRate: 199 },
-                { id: 'STE', name: 'Suite', baseRate: 299 }
-            ];
-            
-            const statuses = ['available', 'available', 'occupied', 'occupied', 'reserved', 'maintenance'];
-            for (let floor = 1; floor <= 5; floor++) {
-                for (let num = 1; num <= 20; num++) {
-                    const typeIdx = Math.floor(Math.random() * DB.roomTypes.length);
-                    DB.rooms.push({
-                        id: floor * 100 + num,
-                        number: `${floor}${num.toString().padStart(2, '0')}`,
-                        floor: floor,
-                        type: DB.roomTypes[typeIdx].id,
-                        typeName: DB.roomTypes[typeIdx].name,
-                        status: statuses[Math.floor(Math.random() * statuses.length)],
-                        rate: DB.roomTypes[typeIdx].baseRate,
-                        amenities: 'WiFi, TV'
-                    });
-                }
-            }
-            
+        async function init() {
+            await CloudStore.init();
             renderRooms();
         }
         
         function renderRooms() {
-            let filtered = DB.rooms;
+            const rooms = CloudStore.data.rooms;
+            const roomTypes = CloudStore.data.roomTypes;
+            let filtered = rooms;
             if (currentFilter !== 'all') {
-                filtered = DB.rooms.filter(r => r.status === currentFilter);
+                filtered = rooms.filter(r => r.status === currentFilter);
             }
             
-            document.getElementById('roomGrid').innerHTML = filtered.map(r => `
+            document.getElementById('roomGrid').innerHTML = filtered.map(r => {
+                const typeObj = roomTypes.find(t => t.id === r.type) || { name: r.typeName || 'Standard' };
+                return `
                 <div class="room-card ${r.status}" onclick="viewRoom('${r.id}')">
                     <div class="room-number">${r.number}</div>
-                    <div class="room-type">${r.typeName}</div>
+                    <div class="room-type">${typeObj.name}</div>
                     <div style="font-size: 12px; color: var(--text-secondary);">Floor ${r.floor}</div>
                     <span class="badge badge-${r.status === 'available' ? 'success' : r.status}">${r.status}</span>
                 </div>
-            `).join('');
+            `}).join('');
             
             // Stats
-            document.getElementById('statAvailable').textContent = DB.rooms.filter(r => r.status === 'available').length;
-            document.getElementById('statOccupied').textContent = DB.rooms.filter(r => r.status === 'occupied').length;
-            document.getElementById('statReserved').textContent = DB.rooms.filter(r => r.status === 'reserved').length;
-            document.getElementById('statMaintenance').textContent = DB.rooms.filter(r => r.status === 'maintenance').length;
+            document.getElementById('statAvailable').textContent = rooms.filter(r => r.status === 'available').length;
+            document.getElementById('statOccupied').textContent = rooms.filter(r => r.status === 'occupied').length;
+            document.getElementById('statReserved').textContent = rooms.filter(r => r.status === 'reserved').length;
+            document.getElementById('statMaintenance').textContent = rooms.filter(r => r.status === 'maintenance').length;
         }
         
         function filterRooms(status) {
@@ -270,13 +251,13 @@
         }
         
         function viewRoom(id) {
-            const room = DB.rooms.find(r => r.id === id);
+            const room = CloudStore.data.rooms.find(r => r.id === id);
             if (room) {
                 showToast(`Room ${room.number}: ${room.typeName} - $${room.rate}/night`, 'success');
             }
         }
         
-        function createRoom() {
+        async function createRoom() {
             const number = document.getElementById('roomNumber').value;
             const type = document.getElementById('roomType').value;
             
@@ -285,16 +266,15 @@
                 return;
             }
             
-            const typeObj = DB.roomTypes.find(t => t.id === type);
+            const typeObj = CloudStore.data.roomTypes.find(t => t.id === type);
             
-            DB.rooms.push({
-                id: DB.rooms.length + 1,
+            await CloudStore.createRoom({
                 number: number,
                 floor: parseInt(document.getElementById('roomFloor').value) || 1,
                 type: type,
-                typeName: typeObj.name,
+                typeName: typeObj?.name || type,
                 status: 'available',
-                rate: parseInt(document.getElementById('roomRate').value) || typeObj.baseRate,
+                rate: parseInt(document.getElementById('roomRate').value) || typeObj?.baseRate || 99,
                 amenities: document.getElementById('roomAmenities').value || 'WiFi, TV'
             });
             
