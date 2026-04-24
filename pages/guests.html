@@ -269,7 +269,7 @@
                 filtered = CloudStore.data.guests.filter(g => g.type === currentFilter);
             }
             
-            document.getElementById('guestTable').innerHTML = filtered.slice(0, 20).map(g => `
+            document.getElementById('guestsTable').innerHTML = filtered.slice(0, 20).map(g => `
                 <tr>
                     <td class="mono">${g.id}</td>
                     <td>${g.firstName} ${g.lastName}</td>
@@ -302,7 +302,7 @@
                 g.email.toLowerCase().includes(q) ||
                 g.id.toLowerCase().includes(q)
             );
-            document.getElementById('guestTable').innerHTML = filtered.slice(0, 20).map(g => `
+            document.getElementById('guestsTable').innerHTML = filtered.slice(0, 20).map(g => `
                 <tr>
                     <td class="mono">${g.id}</td>
                     <td>${g.firstName} ${g.lastName}</td>
