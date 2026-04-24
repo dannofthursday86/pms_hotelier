@@ -22,20 +22,42 @@ const CloudStore = {
     // Initialize - load from storage or create defaults
     async init() {
         try {
-            // Try to load from localStorage first (works offline)
+            // Try to load from localStorage first
             const stored = localStorage.getItem(this.STORAGE_KEY);
             if (stored) {
-                this.data = JSON.parse(stored);
+                const parsed = JSON.parse(stored);
+                // Check if data is valid (has guests array and it's not empty)
+                if (parsed && parsed.guests && parsed.guests.length > 0) {
+                    this.data = parsed;
+                    console.log('CloudStore loaded from storage:', this.data.guests.length, 'guests');
+                } else {
+                    // Data incomplete, reinitialize
+                    console.log('CloudStore data incomplete, reinitializing...');
+                    await this.initializeDefaults();
+                    await this.save();
+                }
             } else {
-                // Initialize with default data
+                // No stored data, initialize defaults
+                console.log('CloudStore: No stored data, initializing defaults...');
                 await this.initializeDefaults();
                 await this.save();
             }
         } catch (e) {
             console.error('CloudStore init error:', e);
             await this.initializeDefaults();
+            await this.save();
         }
         return this.data;
+    },
+    
+    // Save to localStorage
+    async save() {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+            console.log('CloudStore saved:', this.data.guests.length, 'guests');
+        } catch (e) {
+            console.error('CloudStore save error:', e);
+        }
     },
     
     // Initialize default hotel data
@@ -150,10 +172,8 @@ const CloudStore = {
             });
         }
         
-        // Rates
+        // Rates & Settings
         this.data.rates = [];
-        
-        // Settings
         this.data.settings = {
             hotelName: 'CloudStay Hotel',
             currency: 'USD',
@@ -163,67 +183,7 @@ const CloudStore = {
         };
     },
     
-    // Save to localStorage
-    async save() {
-        try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
-            // Also try to sync to cloud if available
-            await this.syncToCloud();
-        } catch (e) {
-            console.error('CloudStore save error:', e);
-        }
-    },
-    
-    // Try to sync to cloud (placeholder for future API integration)
-    async syncToCloud() {
-        // This can be extended to sync with a real cloud API
-        // For now, we just store locally
-        try {
-            const response = await fetch(this.API_BASE + '/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(this.data),
-                // Don't fail if API is unavailable
-                signal: AbortSignal.timeout(2000)
-            });
-            if (response.ok) {
-                const cloudData = await response.json();
-                // Merge any cloud updates
-                this.mergeCloudData(cloudData);
-            }
-        } catch (e) {
-            // Cloud sync unavailable - continue with local data
-        }
-    },
-    
-    // Merge cloud data updates
-    mergeCloudData(cloudData) {
-        if (!cloudData) return;
-        // Simple merge strategy - newer wins based on timestamp
-        ['guests', 'reservations', 'rooms', 'activities', 'housekeeping'].forEach(key => {
-            if (cloudData[key]) {
-                this.data[key] = this.data[key].map(local => {
-                    const cloud = cloudData[key].find(c => c.id === local.id);
-                    if (cloud && new Date(cloud.updatedAt) > new Date(local.updatedAt)) {
-                        return cloud;
-                    }
-                    return local;
-                });
-            }
-        });
-    },
-    
-    // CRUD Operations for each entity type
-    
-    // Guests
-    async getGuests() {
-        return [...this.data.guests];
-    },
-    
-    async getGuest(id) {
-        return this.data.guests.find(g => g.id === id);
-    },
-    
+    // CRUD Operations - Guests
     async createGuest(guest) {
         const newGuest = {
             ...guest,
@@ -233,6 +193,7 @@ const CloudStore = {
         };
         this.data.guests.push(newGuest);
         await this.save();
+        console.log('Guest created:', newGuest.id);
         return newGuest;
     },
     
@@ -260,15 +221,7 @@ const CloudStore = {
         return false;
     },
     
-    // Reservations
-    async getReservations() {
-        return [...this.data.reservations];
-    },
-    
-    async getReservation(id) {
-        return this.data.reservations.find(r => r.id === id);
-    },
-    
+    // CRUD Operations - Reservations
     async createReservation(reservation) {
         const newReservation = {
             ...reservation,
@@ -288,6 +241,7 @@ const CloudStore = {
         }
         
         await this.save();
+        console.log('Reservation created:', newReservation.id);
         return newReservation;
     },
     
@@ -320,25 +274,7 @@ const CloudStore = {
         return null;
     },
     
-    async deleteReservation(id) {
-        const index = this.data.reservations.findIndex(r => r.id === id);
-        if (index >= 0) {
-            this.data.reservations.splice(index, 1);
-            await this.save();
-            return true;
-        }
-        return false;
-    },
-    
-    // Rooms
-    async getRooms() {
-        return [...this.data.rooms];
-    },
-    
-    async getRoom(id) {
-        return this.data.rooms.find(r => r.id === id);
-    },
-    
+    // CRUD Operations - Rooms
     async createRoom(room) {
         const newRoom = {
             ...room,
@@ -348,6 +284,7 @@ const CloudStore = {
         };
         this.data.rooms.push(newRoom);
         await this.save();
+        console.log('Room created:', newRoom.id);
         return newRoom;
     },
     
@@ -365,26 +302,7 @@ const CloudStore = {
         return null;
     },
     
-    async deleteRoom(id) {
-        const index = this.data.rooms.findIndex(r => r.id === id);
-        if (index >= 0) {
-            this.data.rooms.splice(index, 1);
-            await this.save();
-            return true;
-        }
-        return false;
-    },
-    
-    // Room Types
-    async getRoomTypes() {
-        return [...this.data.roomTypes];
-    },
-    
     // Housekeeping
-    async getHousekeeping() {
-        return [...this.data.housekeeping];
-    },
-    
     async createHousekeeping(task) {
         const newTask = {
             ...task,
@@ -395,6 +313,7 @@ const CloudStore = {
         };
         this.data.housekeeping.push(newTask);
         await this.save();
+        console.log('Housekeeping task created:', newTask.id);
         return newTask;
     },
     
@@ -412,26 +331,6 @@ const CloudStore = {
         return null;
     },
     
-    // Activities
-    async getActivities() {
-        return [...this.data.activities];
-    },
-    
-    async addActivity(activity) {
-        const newActivity = {
-            ...activity,
-            id: this.data.activities.length + 1,
-            time: new Date().toISOString()
-        };
-        this.data.activities.unshift(newActivity);
-        // Keep only last 100 activities
-        if (this.data.activities.length > 100) {
-            this.data.activities = this.data.activities.slice(0, 100);
-        }
-        await this.save();
-        return newActivity;
-    },
-    
     // Settings
     async getSettings() {
         return { ...this.data.settings };
@@ -441,27 +340,6 @@ const CloudStore = {
         this.data.settings = { ...this.data.settings, ...updates };
         await this.save();
         return this.data.settings;
-    },
-    
-    // Statistics helpers
-    async getStats() {
-        const today = new Date().toISOString().split('T')[0];
-        const arrivals = this.data.reservations.filter(r => r.checkIn === today && r.status === 'due_in').length;
-        const departures = this.data.reservations.filter(r => r.checkOut === today && r.status === 'due_out').length;
-        const available = this.data.rooms.filter(r => r.status === 'available').length;
-        const occupied = this.data.rooms.filter(r => r.status === 'occupied').length;
-        const total = this.data.rooms.length;
-        
-        return {
-            arrivals,
-            departures,
-            available,
-            occupied,
-            total,
-            occupancy: total > 0 ? Math.round((occupied / total) * 100) : 0,
-            guestCount: this.data.guests.length,
-            reservationCount: this.data.reservations.length
-        };
     },
     
     // Clear all data (for testing)

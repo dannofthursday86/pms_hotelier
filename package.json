@@ -9,10 +9,14 @@
     "build": "vercel build",
     "deploy": "vercel --prod"
   },
-  "keywords": ["hotel", "pms", "property-management"],
+  "keywords": [
+    "hotel",
+    "pms",
+    "property-management"
+  ],
   "author": "",
   "license": "ISC",
-  "dependencies": {
+  "devDependencies": {
     "vercel": "^52.0.0"
   }
 }
