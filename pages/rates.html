@@ -121,24 +121,25 @@
         </div>
     </div>
     <div class="toast" id="toast"></div>
+    <script src="CloudStore.js"></script>
     <script>
-        const rates = [
-            { name: 'Standard', roomType: 'Standard', rate: 99, status: 'Active' },
-            { name: 'Deluxe', roomType: 'Deluxe', rate: 149, status: 'Active' },
-            { name: 'Superior', roomType: 'Superior', rate: 199, status: 'Active' },
-            { name: 'Suite', roomType: 'Suite', rate: 299, status: 'Active' }
-        ];
-        
-        function render() {
-            document.getElementById('ratePlans').innerHTML = rates.map(r => `<tr><td>${r.name}</td><td>${r.roomType}</td><td>$${r.rate}</td><td><span class="badge badge-success">${r.status}</span></td></tr>`).join('');
+        async function init() {
+            await CloudStore.init();
+            render();
         }
         
-        function createRate() {
+        function render() {
+            const rates = CloudStore.data.roomTypes;
+            document.getElementById('ratePlans').innerHTML = rates.map(r => `<tr><td>${r.name}</td><td>${r.name}</td><td>$${r.baseRate}</td><td><span class="badge badge-success">Active</span></td></tr>`).join('') || '<tr><td colspan="4">No rates</td></tr>';
+        }
+        
+        async function createRate() {
             const name = document.getElementById('rateName').value;
             const type = document.getElementById('rateRoomType').value;
             const amount = document.getElementById('rateAmount').value;
             if(!name || !amount) { showToast('Fill required'); return; }
-            rates.push({ name, roomType: type, rate: amount, status: 'Active' });
+            CloudStore.data.roomTypes.push({ id: type, name: name, baseRate: parseInt(amount), maxOccupancy: 2 });
+            await CloudStore.save();
             closeModal('rateModal'); showToast('Rate created!'); render();
         }
         
@@ -146,7 +147,7 @@
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-        render();
+        init();
     </script>
 </body>
 </html>

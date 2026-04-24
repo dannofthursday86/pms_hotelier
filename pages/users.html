@@ -89,7 +89,9 @@
             </div>
         </main>
     </div>
+    <script src="CloudStore.js"></script>
     <script>
+        // Note: Users are hardcoded for security - in production load from server
         const users = [
             {name: 'John Doe', role: 'Administrator', email: 'john@hotel.com', last: 'Just now', status: 'Active'},
             {name: 'Jane Smith', role: 'Manager', email: 'jane@hotel.com', last: '2 hours ago', status: 'Active'},
@@ -97,8 +99,23 @@
             {name: 'Maria Santos', role: 'Housekeeper', email: 'maria@hotel.com', last: '3 hours ago', status: 'Active'},
             {name: 'Tom Wilson', role: 'Front Desk', email: 'tom@hotel.com', last: '1 week ago', status: 'Inactive'}
         ];
-        document.getElementById('usersTable').innerHTML = users.map(u => `<tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="user-avatar">${u.name.split(' ').map(n=>n[0]).join('')}</div>${u.name}</div></td><td>${u.role}</td><td>${u.email}</td><td>${u.last}</td><td><span class="badge badge-success">${u.status}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Edit</button></td></tr>`).join('');
+        
+        async function init() {
+            await CloudStore.init();
+            // Load hotel name from settings
+            const settings = await CloudStore.getSettings();
+            if (settings.hotelName) {
+                document.querySelectorAll('.logo-text').forEach(el => el.textContent = settings.hotelName);
+            }
+            renderUsers();
+        }
+        
+        function renderUsers() {
+            document.getElementById('usersTable').innerHTML = users.map(u => `<tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="user-avatar">${u.name.split(' ').map(n=>n[0]).join('')}</div>${u.name}</div></td><td>${u.role}</td><td>${u.email}</td><td>${u.last}</td><td><span class="badge badge-success">${u.status}</span></td><td><button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Edit</button></td></tr>`).join('');
+        }
+        
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+        init();
     </script>
 </body>
 </html>

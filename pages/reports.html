@@ -88,18 +88,49 @@
             </div>
         </main>
     </div>
+    <script src="CloudStore.js"></script>
     <script>
+        async function init() {
+            await CloudStore.init();
+        }
+        
         function generateReport(type) {
+            const DB = CloudStore.data;
             const titles = { occupancy: 'Occupancy Report', revenue: 'Revenue Report', guest: 'Guest Report' };
             document.getElementById('reportTitle').textContent = titles[type];
             let html = '<table class="data-table"><thead><tr>';
-            if (type === 'occupancy') { html += '<th>Date</th><th>Occupied</th><th>Available</th><th>Occupancy %</th></tr></thead><tbody>'; for (let i = 0; i < 7; i++) { const occ = 50 + Math.floor(Math.random() * 30); html += `<tr><td>Day ${i+1}</td><td>${occ}</td><td>${100-occ}</td><td>${occ}%</td></tr>`; } }
-            else if (type === 'revenue') { html += '<th>Source</th><th>Amount</th><th>%</th></tr></thead><tbody><tr><td>Room Revenue</td><td>$12,000</td><td>75%</td></tr><tr><td>F&B</td><td>$2,400</td><td>15%</td></tr><tr><td>Other</td><td>$1,600</td><td>10%</td></tr>'; }
-            else { html += '<th>Guest</th><th>Visits</th><th>Revenue</th></tr></thead><tbody>'; const names = ['James Wilson','Maria Garcia','John Smith','Sarah Johnson','Michael Brown']; names.forEach(n => html += `<tr><td>${n}</td><td>${Math.floor(Math.random()*10)+1}</td><td>$${Math.floor(Math.random()*5000)+100}</td></tr>`); }
+            
+            if (type === 'occupancy') { 
+                html += '<th>Room Type</th><th>Total</th><th>Occupied</th><th>Available</th><th>Occupancy %</th></tr></thead><tbody>'; 
+                const roomTypes = DB.roomTypes;
+                roomTypes.forEach(rt => {
+                    const total = DB.rooms.filter(r => r.type === rt.id).length;
+                    const occupied = DB.rooms.filter(r => r.type === rt.id && r.status === 'occupied').length;
+                    const available = total - occupied;
+                    const pct = total > 0 ? Math.round(occupied / total * 100) : 0;
+                    html += `<tr><td>${rt.name}</td><td>${total}</td><td>${occupied}</td><td>${available}</td><td>${pct}%</td></tr>`;
+                }); 
+            }
+            else if (type === 'revenue') { 
+                const totalRev = DB.reservations.reduce((s, r) => s + (r.rate || 0), 0);
+                html += '<th>Source</th><th>Amount</th><th>%</th></tr></thead><tbody>';
+                html += `<tr><td>Room Revenue</td><td>$${totalRev.toLocaleString()}</td><td>75%</td></tr>`;
+                html += `<tr><td>F&B</td><td>$${Math.floor(totalRev * 0.15).toLocaleString()}</td><td>15%</td></tr>`;
+                html += `<tr><td>Other</td><td>$${Math.floor(totalRev * 0.1).toLocaleString()}</td><td>10%</td></tr>`;
+            }
+            else { 
+                html += '<th>Guest</th><th>Name</th><th>Country</th><th>Type</th></tr></thead><tbody>'; 
+                DB.guests.slice(0, 10).forEach(g => {
+                    html += `<tr><td>${g.id}</td><td>${g.firstName} ${g.lastName}</td><td>${g.country}</td><td>${g.type}</td></tr>`;
+                });
+            }
+            
             html += '</tbody></table>';
             document.getElementById('reportContent').innerHTML = html;
         }
+        
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        init();
     </script>
 </body>
 </html>

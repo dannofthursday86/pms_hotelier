@@ -214,74 +214,16 @@
     
     <div class="toast" id="toast"></div>
     
+    <script src="CloudStore.js"></script>
     <script>
-        const DB = { guests: [], reservations: [], rooms: [], roomTypes: [] };
-        
-        function init() {
-            // Room Types
-            DB.roomTypes = [
-                { id: 'STD', name: 'Standard', baseRate: 99 },
-                { id: 'DLX', name: 'Deluxe', baseRate: 149 },
-                { id: 'SUP', name: 'Superior', baseRate: 199 },
-                { id: 'STE', name: 'Suite', baseRate: 299 }
-            ];
-            
-            // Rooms
-            for (let floor = 1; floor <= 5; floor++) {
-                for (let num = 1; num <= 20; num++) {
-                    const typeIdx = Math.floor(Math.random() * DB.roomTypes.length);
-                    DB.rooms.push({
-                        id: floor * 100 + num,
-                        number: `${floor}${num.toString().padStart(2, '0')}`,
-                        type: DB.roomTypes[typeIdx].id,
-                        status: Math.random() > 0.5 ? 'occupied' : 'available'
-                    });
-                }
-            }
-            
-            // Guests
-            const names = ['James Wilson', 'Maria Garcia', 'John Smith', 'Sarah Johnson', 'Michael Brown', 'Emma Davis'];
-            names.forEach((name, i) => {
-                const parts = name.split(' ');
-                DB.guests.push({
-                    id: `G${String(i+1).padStart(4, '0')}`,
-                    firstName: parts[0],
-                    lastName: parts[1],
-                    email: `${parts[0].toLowerCase()}@email.com`,
-                    phone: `+1 555 ${Math.floor(Math.random()*900)+100} ${Math.floor(Math.random()*9000)+1000}`
-                });
-            });
-            
-            // Reservations
-            const today = new Date();
-            for (let i = 0; i < 40; i++) {
-                const checkIn = new Date(today.getTime() + (Math.random()-0.5)*20*24*60*60*1000);
-                const checkOut = new Date(checkIn.getTime() + (Math.floor(Math.random()*5)+1)*24*60*60*1000);
-                const guest = DB.guests[Math.floor(Math.random() * DB.guests.length)];
-                const room = DB.rooms[Math.floor(Math.random() * DB.rooms.length)];
-                
-                let status = 'confirmed';
-                if (checkIn.toDateString() === today.toDateString()) status = 'due_in';
-                if (checkOut.toDateString() === today.toDateString()) status = 'due_out';
-                if (Math.random() > 0.6) status = 'checked_in';
-                
-                DB.reservations.push({
-                    id: `RES${String(i+1).padStart(4, '0')}`,
-                    guestId: guest.id,
-                    guestName: `${guest.firstName} ${guest.lastName}`,
-                    roomId: room.id,
-                    roomNumber: room.number,
-                    checkIn: checkIn.toISOString().split('T')[0],
-                    checkOut: checkOut.toISOString().split('T')[0],
-                    status: status,
-                    rate: 99 + Math.floor(Math.random() * 200)
-                });
-            }
-            
+        // Use CloudStore for data
+        async function init() {
+            await CloudStore.init();
             renderAll();
         }
         
         function renderAll() {
+            const DB = CloudStore.data;
             const today = new Date().toISOString().split('T')[0];
             
             // Arrivals
@@ -324,29 +266,30 @@
             `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary)">No in-house guests</td></tr>';
         }
         
-        function doCheckIn(id) {
-            const res = DB.reservations.find(r => r.id === id);
+        async function doCheckIn(id) {
+            const res = CloudStore.data.reservations.find(r => r.id === id);
             if (res) {
-                res.status = 'checked_in';
-                const room = DB.rooms.find(r => r.id === res.roomId);
-                if (room) room.status = 'occupied';
+                await CloudStore.updateReservation(id, { status: 'checked_in' });
+                const room = CloudStore.data.rooms.find(r => r.id === res.roomId);
+                if (room) await CloudStore.updateRoom(res.roomId, { status: 'occupied' });
                 showToast(`${res.guestName} checked in to Room ${res.roomNumber}`, 'success');
                 renderAll();
             }
         }
         
-        function doCheckOut(id) {
-            const res = DB.reservations.find(r => r.id === id);
+        async function doCheckOut(id) {
+            const res = CloudStore.data.reservations.find(r => r.id === id);
             if (res) {
-                res.status = 'checked_out';
-                const room = DB.rooms.find(r => r.id === res.roomId);
-                if (room) room.status = 'available';
+                await CloudStore.updateReservation(id, { status: 'checked_out' });
+                const room = CloudStore.data.rooms.find(r => r.id === res.roomId);
+                if (room) await CloudStore.updateRoom(res.roomId, { status: 'available' });
                 showToast(`${res.guestName} checked out from Room ${res.roomNumber}`, 'success');
                 renderAll();
             }
         }
         
         function searchCheckin() {
+            const DB = CloudStore.data;
             const q = document.getElementById('checkinSearch').value.toLowerCase();
             const filtered = DB.reservations.filter(r => 
                 r.guestName.toLowerCase().includes(q) || 
@@ -372,10 +315,11 @@
             showToast('Opening folio...', 'success');
         }
         
-        function extendStay(id) {
-            const res = DB.reservations.find(r => r.id === id);
+        async function extendStay(id) {
+            const res = CloudStore.data.reservations.find(r => r.id === id);
             if (res) {
-                res.checkOut = new Date(new Date(res.checkOut).getTime() + 24*60*60*1000).toISOString().split('T')[0];
+                const newCheckOut = new Date(new Date(res.checkOut).getTime() + 24*60*60*1000).toISOString().split('T')[0];
+                await CloudStore.updateReservation(id, { checkOut: newCheckOut });
                 showToast(`Stay extended for ${res.guestName}`, 'success');
             }
         }

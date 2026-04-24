@@ -140,36 +140,23 @@
         </div>
     </div>
     <div class="toast" id="toast"></div>
+    <script src="CloudStore.js"></script>
     <script>
-        let tasks = [];
         let filter = 'all';
         
-        function init() {
-            const rooms = [];
-            for(let f=1;f<=5;f++) for(let n=1;n<=20;n++) rooms.push(`${f}${String(n).padStart(2,'0')}`);
-            const staff = ['Maria Santos','Carmen Lopez','Ana Garcia','Rosa Martinez'];
-            const types = ['Standard Cleaning','Deep Cleaning','Turnover','Inspection'];
-            const statuses = ['pending','in_progress','completed'];
-            for(let i=0;i<25;i++) {
-                tasks.push({
-                    id: i+1,
-                    room: rooms[Math.floor(Math.random()*rooms.length)],
-                    type: types[Math.floor(Math.random()*types.length)],
-                    staff: staff[Math.floor(Math.random()*staff.length)],
-                    priority: Math.random()>0.7?'High':'Normal',
-                    status: statuses[Math.floor(Math.random()*statuses.length)]
-                });
-            }
+        async function init() {
+            await CloudStore.init();
             render();
         }
         
         function render() {
+            const tasks = CloudStore.data.housekeeping;
             let filtered = filter==='all'?tasks:tasks.filter(t=>t.status===filter);
             document.getElementById('tasksTable').innerHTML = filtered.map(t => `
                 <tr>
-                    <td class="mono">${t.room}</td>
+                    <td class="mono">${t.roomNumber}</td>
                     <td>${t.type}</td>
-                    <td>${t.staff}</td>
+                    <td>${t.assignedTo}</td>
                     <td><span class="badge ${t.priority==='High'?'badge-danger':'badge-warning'}">${t.priority}</span></td>
                     <td><span class="badge badge-${t.status==='completed'?'success':t.status==='in_progress'?'info':'warning'}">${t.status.replace('_',' ')}</span></td>
                     <td>${Math.floor(Math.random()*2)+1}h</td>
@@ -184,8 +171,40 @@
         }
         
         function filterTasks(f) { filter=f; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); event.target.classList.add('active'); render(); }
-        function updateStatus(id) { const t=tasks.find(x=>x.id===id); if(t){ const s=['pending','in_progress','completed']; t.status=s[(s.indexOf(t.status)+1)%3]; showToast('Status updated'); render(); }}
-        function createTask() { tasks.push({id:tasks.length+1,room:document.getElementById('taskRoom').value,type:document.getElementById('taskType').value,staff:document.getElementById('taskAssign').value,priority:document.getElementById('taskPriority').value,status:'pending'}); closeModal('taskModal'); showToast('Task assigned'); render(); }
+        
+        async function updateStatus(id) {
+            const task = CloudStore.data.housekeeping.find(x=>x.id===id);
+            if(task){ 
+                const s=['pending','in_progress','completed']; 
+                task.status=s[(s.indexOf(task.status)+1)%3]; 
+                await CloudStore.updateHousekeeping(id, { status: task.status });
+                showToast('Status updated'); 
+                render(); 
+            }
+        }
+        
+        async function createTask() {
+            const room = document.getElementById('taskRoom').value;
+            const type = document.getElementById('taskType').value;
+            const staff = document.getElementById('taskAssign').value;
+            const priority = document.getElementById('taskPriority').value;
+            
+            const roomObj = CloudStore.data.rooms.find(r => r.number === room);
+            
+            await CloudStore.createHousekeeping({
+                roomId: roomObj?.id || 1,
+                roomNumber: room,
+                type: type,
+                assignedTo: staff,
+                priority: priority,
+                status: 'pending'
+            });
+            
+            closeModal('taskModal');
+            showToast('Task assigned');
+            render();
+        }
+        
         function openModal(id){document.getElementById(id).classList.add('active');} function closeModal(id){document.getElementById(id).classList.remove('active');}
         function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
         document.getElementById('currentDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});init();

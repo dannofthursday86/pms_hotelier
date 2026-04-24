@@ -111,23 +111,36 @@
         </main>
     </div>
     <div class="toast" id="toast"></div>
+    <script src="CloudStore.js"></script>
     <script>
-        const guests = ['James Wilson','Maria Garcia','John Smith','Sarah Johnson','Michael Brown'];
-        const payments = [];
-        for(let i=0;i<10;i++) payments.push({date:'2026-04-'+String(i+1).padStart(2,'0'),guest:guests[Math.floor(Math.random()*guests.length)],method:['Cash','Credit Card','Debit Card'][Math.floor(Math.random()*3)],amount:Math.floor(Math.random()*500)+50,status:'Completed'});
-        document.getElementById('folioSelect').innerHTML = '<option value="">Select guest...</option>' + guests.map((g,i)=>`<option value="${i}">${g}</option>`).join('');
-        document.getElementById('paymentsList').innerHTML = payments.map(p=>`<tr><td>${p.date}</td><td>${p.guest}</td><td>${p.method}</td><td>$${p.amount}</td><td><span class="badge badge-success">${p.status}</span></td></tr>`).join('');
+        async function init() {
+            await CloudStore.init();
+            const guests = CloudStore.data.guests.map(g => `${g.firstName} ${g.lastName}`);
+            document.getElementById('folioSelect').innerHTML = '<option value="">Select guest...</option>' + guests.map((g,i)=>`<option value="${i}">${g}</option>`).join('');
+            
+            const payments = CloudStore.data.reservations.slice(0, 10).map(p => ({
+                date: p.checkIn,
+                guest: p.guestName,
+                method: p.source || 'Credit Card',
+                amount: p.rate || 100,
+                status: 'Completed'
+            }));
+            document.getElementById('paymentsList').innerHTML = payments.map(p=>`<tr><td>${p.date}</td><td>${p.guest}</td><td>${p.method}</td><td>$${p.amount}</td><td><span class="badge badge-success">${p.status}</span></td></tr>`).join('');
+        }
+        
         function loadFolio() {
             const idx = document.getElementById('folioSelect').value;
             if(!idx) { document.getElementById('folioDetails').style.display='none'; return; }
-            const guest = guests[idx];
+            const guest = CloudStore.data.guests[idx];
             const nights = Math.floor(Math.random()*5)+1;
-            const rate = 99 + Math.floor(Math.random()*200);
+            const rate = guest?.type === 'VIP' ? 199 : 99;
             const total = nights * rate;
             document.getElementById('folioDetails').style.display='block';
-            document.getElementById('folioContent').innerHTML = `<div style="padding:16px;"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Guest</span><strong>${guest}</strong></div><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Nights</span><strong>${nights}</strong></div><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Rate/night</span><strong>$${rate}</strong></div><hr style="margin:16px 0;"><div style="display:flex;justify-content:space-between;font-size:18px;"><span>Total</span><strong>$${total}</strong></div></div>`;
+            document.getElementById('folioContent').innerHTML = `<div style="padding:16px;"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Guest</span><strong>${guest.firstName} ${guest.lastName}</strong></div><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Nights</span><strong>${nights}</strong></div><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Rate/night</span><strong>$${rate}</strong></div><hr style="margin:16px 0;"><div style="display:flex;justify-content:space-between;font-size:18px;"><span>Total</span><strong>$${total}</strong></div></div>`;
         }
+        
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+        init();
     </script>
 </body>
 </html>

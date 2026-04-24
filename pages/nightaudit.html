@@ -128,13 +128,21 @@
         </main>
     </div>
     <div class="toast" id="toast"></div>
+    <script src="CloudStore.js"></script>
     <script>
+        async function init() {
+            await CloudStore.init();
+        }
+        
         function runAudit() {
-            const inHouse = Math.floor(Math.random() * 50) + 30;
-            const arrivals = Math.floor(Math.random() * 15) + 5;
-            const departures = Math.floor(Math.random() * 10) + 3;
-            const occupied = inHouse + arrivals;
-            const vacant = 100 - occupied;
+            const DB = CloudStore.data;
+            const inHouse = DB.reservations.filter(r => r.status === 'checked_in').length;
+            const today = new Date().toISOString().split('T')[0];
+            const arrivals = DB.reservations.filter(r => r.checkIn === today).length;
+            const departures = DB.reservations.filter(r => r.checkOut === today).length;
+            const occupied = DB.rooms.filter(r => r.status === 'occupied').length;
+            const vacant = DB.rooms.filter(r => r.status === 'available').length;
+            
             const roomRev = occupied * 120;
             const fnbRev = Math.floor(roomRev * 0.15);
             const otherRev = Math.floor(roomRev * 0.05);
@@ -145,7 +153,7 @@
             document.getElementById('noShows').textContent = '0';
             document.getElementById('occupied').textContent = occupied;
             document.getElementById('vacant').textContent = vacant;
-            document.getElementById('occupancy').textContent = occupied + '%';
+            document.getElementById('occupancy').textContent = (occupied / DB.rooms.length * 100).toFixed(0) + '%';
             document.getElementById('roomRev').textContent = '$' + roomRev.toLocaleString();
             document.getElementById('fnbRev').textContent = '$' + fnbRev.toLocaleString();
             document.getElementById('otherRev').textContent = '$' + otherRev.toLocaleString();
@@ -162,6 +170,7 @@
         }
         
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        init();
     </script>
 </body>
 </html>
