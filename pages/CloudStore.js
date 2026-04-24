@@ -1,16 +1,19 @@
 /**
- * CloudStore - Centralized Cloud Storage API
+ * CloudStore - Centralized Cloud Storage API (Pesan PMS Style)
  * Provides persistent data storage across all PMS pages
+ * Based on zustand store pattern with localStorage persistence
  */
 const CloudStore = {
-    STORAGE_KEY: 'cloudstay_pms_data',
+    STORAGE_KEY: 'pesan-pms-storage',
     API_BASE: '/api/store',
     
     // In-memory cache
     data: {
-        guests: [],
-        reservations: [],
+        properties: [],
+        selectedPropertyId: null,
         rooms: [],
+        guests: [],
+        bookings: [],
         roomTypes: [],
         activities: [],
         rates: [],
@@ -22,23 +25,30 @@ const CloudStore = {
     // Initialize - load from storage or create defaults
     async init() {
         try {
-            // Try to load from localStorage first
             const stored = localStorage.getItem(this.STORAGE_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                // Check if data is valid (has guests array and it's not empty)
-                if (parsed && parsed.guests && parsed.guests.length > 0) {
+                if (parsed && parsed.state) {
+                    // Zustand format
+                    this.data = {
+                        ...this.data,
+                        properties: parsed.state.properties || [],
+                        selectedPropertyId: parsed.state.selectedPropertyId,
+                        rooms: parsed.state.rooms || [],
+                        guests: parsed.state.guests || [],
+                        bookings: parsed.state.bookings || []
+                    };
+                    console.log('CloudStore loaded from storage');
+                } else if (parsed.guests && parsed.guests.length > 0) {
+                    // Old format
                     this.data = parsed;
-                    console.log('CloudStore loaded from storage:', this.data.guests.length, 'guests');
+                    console.log('CloudStore loaded (legacy format)');
                 } else {
-                    // Data incomplete, reinitialize
-                    console.log('CloudStore data incomplete, reinitializing...');
                     await this.initializeDefaults();
                     await this.save();
                 }
             } else {
-                // No stored data, initialize defaults
-                console.log('CloudStore: No stored data, initializing defaults...');
+                console.log('CloudStore: Initializing defaults...');
                 await this.initializeDefaults();
                 await this.save();
             }
@@ -54,10 +64,14 @@ const CloudStore = {
     async save() {
         try {
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
-            console.log('CloudStore saved:', this.data.guests.length, 'guests');
         } catch (e) {
             console.error('CloudStore save error:', e);
         }
+    },
+    
+    // Generate UUID
+    generateId() {
+        return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     },
     
     // Initialize default hotel data
@@ -71,6 +85,18 @@ const CloudStore = {
             { id: 'PENT', name: 'Penthouse', baseRate: 499, maxOccupancy: 6 }
         ];
         
+        // Properties
+        this.data.properties = [
+            {
+                id: 'prop-1',
+                name: 'CloudStay Hotel',
+                type: 'hotel',
+                address: '123 Main Street, City',
+                rooms: 100
+            }
+        ];
+        this.data.selectedPropertyId = 'prop-1';
+        
         // Generate 100 Rooms
         const statuses = ['available', 'available', 'occupied', 'occupied', 'reserved', 'maintenance'];
         this.data.rooms = [];
@@ -79,45 +105,41 @@ const CloudStore = {
             for (let num = 1; num <= 20; num++) {
                 const typeIdx = Math.floor(Math.random() * this.data.roomTypes.length);
                 this.data.rooms.push({
-                    id: roomId++,
-                    number: `${floor}${num.toString().padStart(2, '0')}`,
+                    id: String(roomId),
+                    propertyId: 'prop-1',
+                    name: `${floor}${num.toString().padStart(2, '0')}`,
                     type: this.data.roomTypes[typeIdx].id,
-                    floor: floor,
-                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    capacity: this.data.roomTypes[typeIdx].maxOccupancy,
                     rate: this.data.roomTypes[typeIdx].baseRate,
-                    amenities: [],
-                    blocked: false
+                    status: statuses[Math.floor(Math.random() * statuses.length)]
                 });
+                roomId++;
             }
         }
         
         // Sample Guests
         const names = [
-            { first: 'James', last: 'Wilson' },
-            { first: 'Maria', last: 'Garcia' },
-            { first: 'John', last: 'Smith' },
-            { first: 'Sarah', last: 'Johnson' },
-            { first: 'Michael', last: 'Brown' },
-            { first: 'Emma', last: 'Davis' },
-            { first: 'Robert', last: 'Miller' },
-            { first: 'Lisa', last: 'Anderson' }
+            { firstName: 'James', lastName: 'Wilson' },
+            { firstName: 'Maria', lastName: 'Garcia' },
+            { firstName: 'John', lastName: 'Smith' },
+            { firstName: 'Sarah', lastName: 'Johnson' },
+            { firstName: 'Michael', lastName: 'Brown' },
+            { firstName: 'Emma', lastName: 'Davis' },
+            { firstName: 'Robert', lastName: 'Miller' },
+            { firstName: 'Lisa', lastName: 'Anderson' }
         ];
         
         this.data.guests = names.map((name, i) => ({
-            id: `G${String(i+1).padStart(4, '0')}`,
-            firstName: name.first,
-            lastName: name.last,
-            email: `${name.first.toLowerCase()}@email.com`,
+            id: `guest-${i+1}`,
+            name: `${name.firstName} ${name.lastName}`,
+            email: `${name.firstName.toLowerCase()}@email.com`,
             phone: `+1 555 ${Math.floor(Math.random()*900)+100} ${Math.floor(Math.random()*9000)+1000}`,
-            country: ['USA', 'UK', 'Spain', 'France', 'Germany'][Math.floor(Math.random() * 5)],
-            type: Math.random() > 0.7 ? 'VIP' : 'Regular',
-            notes: '',
-            createdAt: new Date().toISOString()
+            address: `${Math.floor(Math.random()*999)+1} ${['Oak', 'Maple', 'Pine', 'Cedar'][Math.floor(Math.random()*4)]} Street`
         }));
         
-        // Generate Reservations
+        // Generate Bookings
         const today = new Date();
-        this.data.reservations = [];
+        this.data.bookings = [];
         for (let i = 0; i < 30; i++) {
             const checkIn = new Date(today.getTime() + (Math.random()-0.4)*14*24*60*60*1000);
             const checkOut = new Date(checkIn.getTime() + (Math.floor(Math.random()*4)+1)*24*60*60*1000);
@@ -126,32 +148,16 @@ const CloudStore = {
             const status = checkIn.toDateString() === today.toDateString() ? 'due_in' : 
                         checkOut.toDateString() === today.toDateString() ? 'due_out' : 'confirmed';
             
-            this.data.reservations.push({
-                id: `RES${String(i+1).padStart(4, '0')}`,
-                guestId: guest.id,
-                guestName: `${guest.firstName} ${guest.lastName}`,
+            this.data.bookings.push({
+                id: `booking-${i+1}`,
+                propertyId: 'prop-1',
                 roomId: room.id,
-                roomNumber: room.number,
+                guestId: guest.id,
+                guestName: guest.name,
                 checkIn: checkIn.toISOString().split('T')[0],
                 checkOut: checkOut.toISOString().split('T')[0],
                 status: status,
-                rate: 99 + Math.floor(Math.random() * 200),
-                source: 'direct',
-                notes: '',
-                createdAt: new Date().toISOString()
-            });
-        }
-        
-        // Activities
-        const actions = ['checked in', 'checked out', 'created reservation', 'updated profile'];
-        this.data.activities = [];
-        for (let i = 0; i < 10; i++) {
-            const guest = this.data.guests[Math.floor(Math.random() * this.data.guests.length)];
-            this.data.activities.push({
-                id: i + 1,
-                guest: `${guest.firstName} ${guest.lastName}`,
-                action: actions[Math.floor(Math.random() * actions.length)],
-                time: new Date(Date.now() - Math.random() * 8*60*60*1000).toISOString()
+                totalAmount: 99 + Math.floor(Math.random() * 200)
             });
         }
         
@@ -162,7 +168,7 @@ const CloudStore = {
             this.data.housekeeping.push({
                 id: i + 1,
                 roomId: room.id,
-                roomNumber: room.number,
+                roomName: room.name,
                 type: ['cleaning', 'deep_clean', 'turnover', 'inspection'][Math.floor(Math.random() * 4)],
                 assignedTo: ['Maria', 'Juan', 'Sofia', 'Carlos'][Math.floor(Math.random() * 4)],
                 priority: ['low', 'normal', 'high'][Math.floor(Math.random() * 3)],
@@ -172,8 +178,7 @@ const CloudStore = {
             });
         }
         
-        // Rates & Settings
-        this.data.rates = [];
+        // Settings
         this.data.settings = {
             hotelName: 'CloudStay Hotel',
             currency: 'USD',
@@ -183,171 +188,224 @@ const CloudStore = {
         };
     },
     
-    // CRUD Operations - Guests
-    async createGuest(guest) {
-        const newGuest = {
-            ...guest,
-            id: `G${String(this.data.guests.length + 1).padStart(4, '0')}`,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        this.data.guests.push(newGuest);
-        await this.save();
-        console.log('Guest created:', newGuest.id);
-        return newGuest;
+    // === PROPERTY OPERATIONS ===
+    addProperty(property) {
+        const newProp = { ...property, id: this.generateId() };
+        this.data.properties.push(newProp);
+        this.save();
+        return newProp;
     },
     
-    async updateGuest(id, updates) {
-        const index = this.data.guests.findIndex(g => g.id === id);
-        if (index >= 0) {
-            this.data.guests[index] = {
-                ...this.data.guests[index],
-                ...updates,
-                updatedAt: new Date().toISOString()
-            };
-            await this.save();
-            return this.data.guests[index];
+    updateProperty(id, updates) {
+        const idx = this.data.properties.findIndex(p => p.id === id);
+        if (idx >= 0) {
+            this.data.properties[idx] = { ...this.data.properties[idx], ...updates };
+            this.save();
+            return this.data.properties[idx];
         }
         return null;
     },
     
-    async deleteGuest(id) {
-        const index = this.data.guests.findIndex(g => g.id === id);
-        if (index >= 0) {
-            this.data.guests.splice(index, 1);
-            await this.save();
-            return true;
-        }
-        return false;
+    deleteProperty(id) {
+        this.data.properties = this.data.properties.filter(p => p.id !== id);
+        this.save();
     },
     
-    // CRUD Operations - Reservations
-    async createReservation(reservation) {
-        const newReservation = {
-            ...reservation,
-            id: `RES${String(this.data.reservations.length + 1).padStart(4, '0')}`,
-            status: 'confirmed',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        this.data.reservations.push(newReservation);
-        
-        // Update room status if checked-in
-        if (newReservation.status === 'checked_in') {
-            const roomIdx = this.data.rooms.findIndex(r => r.id === newReservation.roomId);
-            if (roomIdx >= 0) {
-                this.data.rooms[roomIdx].status = 'occupied';
-            }
-        }
-        
-        await this.save();
-        console.log('Reservation created:', newReservation.id);
-        return newReservation;
+    selectProperty(id) {
+        this.data.selectedPropertyId = id;
+        this.save();
     },
     
-    async updateReservation(id, updates) {
-        const index = this.data.reservations.findIndex(r => r.id === id);
-        if (index >= 0) {
-            const oldStatus = this.data.reservations[index].status;
-            this.data.reservations[index] = {
-                ...this.data.reservations[index],
-                ...updates,
-                updatedAt: new Date().toISOString()
-            };
-            
-            // Handle room status changes
-            if (updates.status === 'checked_in' && oldStatus !== 'checked_in') {
-                const roomIdx = this.data.rooms.findIndex(r => r.id === this.data.reservations[index].roomId);
-                if (roomIdx >= 0) {
-                    this.data.rooms[roomIdx].status = 'occupied';
-                }
-            } else if (updates.status === 'checked_out' && oldStatus !== 'checked_out') {
-                const roomIdx = this.data.rooms.findIndex(r => r.id === this.data.reservations[index].roomId);
-                if (roomIdx >= 0) {
-                    this.data.rooms[roomIdx].status = 'available';
-                }
-            }
-            
-            await this.save();
-            return this.data.reservations[index];
-        }
-        return null;
-    },
-    
-    // CRUD Operations - Rooms
-    async createRoom(room) {
-        const newRoom = {
-            ...room,
-            id: this.data.rooms.length + 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
+    // === ROOM OPERATIONS ===
+    addRoom(room) {
+        const newRoom = { ...room, id: this.generateId() };
         this.data.rooms.push(newRoom);
-        await this.save();
-        console.log('Room created:', newRoom.id);
+        this.save();
         return newRoom;
     },
     
-    async updateRoom(id, updates) {
-        const index = this.data.rooms.findIndex(r => r.id === id);
-        if (index >= 0) {
-            this.data.rooms[index] = {
-                ...this.data.rooms[index],
-                ...updates,
-                updatedAt: new Date().toISOString()
-            };
-            await this.save();
-            return this.data.rooms[index];
+    updateRoom(id, updates) {
+        const idx = this.data.rooms.findIndex(r => r.id === id);
+        if (idx >= 0) {
+            this.data.rooms[idx] = { ...this.data.rooms[idx], ...updates };
+            this.save();
+            return this.data.rooms[idx];
         }
         return null;
     },
     
-    // Housekeeping
-    async createHousekeeping(task) {
-        const newTask = {
-            ...task,
-            id: this.data.housekeeping.length + 1,
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
+    deleteRoom(id) {
+        this.data.rooms = this.data.rooms.filter(r => r.id !== id);
+        this.save();
+    },
+    
+    getAvailableRooms() {
+        return this.data.rooms.filter(r => r.status === 'available');
+    },
+    
+    getRoomById(id) {
+        return this.data.rooms.find(r => r.id === id);
+    },
+    
+    // === GUEST OPERATIONS ===
+    addGuest(guest) {
+        const newGuest = { ...guest, id: this.generateId() };
+        this.data.guests.push(newGuest);
+        this.save();
+        return newGuest;
+    },
+    
+    updateGuest(id, updates) {
+        const idx = this.data.guests.findIndex(g => g.id === id);
+        if (idx >= 0) {
+            this.data.guests[idx] = { ...this.data.guests[idx], ...updates };
+            this.save();
+            return this.data.guests[idx];
+        }
+        return null;
+    },
+    
+    deleteGuest(id) {
+        this.data.guests = this.data.guests.filter(g => g.id !== id);
+        this.save();
+    },
+    
+    getGuestById(id) {
+        return this.data.guests.find(g => g.id === id);
+    },
+    
+    // === BOOKING OPERATIONS ===
+    addBooking(booking) {
+        const newBooking = { ...booking, id: this.generateId() };
+        this.data.bookings.push(newBooking);
+        this.save();
+        return newBooking;
+    },
+    
+    updateBooking(id, updates) {
+        const idx = this.data.bookings.findIndex(b => b.id === id);
+        if (idx >= 0) {
+            const oldStatus = this.data.bookings[idx].status;
+            this.data.bookings[idx] = { ...this.data.bookings[idx], ...updates };
+            
+            // Handle room status changes
+            if (updates.status === 'checked-in' && oldStatus !== 'checked-in') {
+                this.updateRoom(this.data.bookings[idx].roomId, { status: 'occupied' });
+            } else if (updates.status === 'checked-out' && oldStatus !== 'checked-out') {
+                this.updateRoom(this.data.bookings[idx].roomId, { status: 'available' });
+            }
+            
+            this.save();
+            return this.data.bookings[idx];
+        }
+        return null;
+    },
+    
+    deleteBooking(id) {
+        this.data.bookings = this.data.bookings.filter(b => b.id !== id);
+        this.save();
+    },
+    
+    getBookingById(id) {
+        return this.data.bookings.find(b => b.id === id);
+    },
+    
+    getBookingsByGuest(guestId) {
+        return this.data.bookings.filter(b => b.guestId === guestId);
+    },
+    
+    getBookingsByRoom(roomId) {
+        return this.data.bookings.filter(b => b.roomId === roomId);
+    },
+    
+    getActiveBookings() {
+        const today = new Date().toISOString().split('T')[0];
+        return this.data.bookings.filter(b => b.checkIn <= today && b.checkOut >= today);
+    },
+    
+    getUpcomingCheckIns() {
+        const today = new Date().toISOString().split('T')[0];
+        const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0];
+        return this.data.bookings.filter(b => b.checkIn >= today && b.checkIn <= tomorrow);
+    },
+    
+    getUpcomingCheckOuts() {
+        const today = new Date().toISOString().split('T')[0];
+        const tomorrow = new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0];
+        return this.data.bookings.filter(b => b.checkOut >= today && b.checkOut <= tomorrow);
+    },
+    
+    // === HOUSEKEEPING OPERATIONS ===
+    addHousekeeping(task) {
+        const newTask = { ...task, id: this.generateId(), status: 'pending' };
         this.data.housekeeping.push(newTask);
-        await this.save();
-        console.log('Housekeeping task created:', newTask.id);
+        this.save();
         return newTask;
     },
     
-    async updateHousekeeping(id, updates) {
-        const index = this.data.housekeeping.findIndex(h => h.id === id);
-        if (index >= 0) {
-            this.data.housekeeping[index] = {
-                ...this.data.housekeeping[index],
-                ...updates,
-                updatedAt: new Date().toISOString()
-            };
-            await this.save();
-            return this.data.housekeeping[index];
+    updateHousekeeping(id, updates) {
+        const idx = this.data.housekeeping.findIndex(h => h.id === id);
+        if (idx >= 0) {
+            this.data.housekeeping[idx] = { ...this.data.housekeeping[idx], ...updates };
+            this.save();
+            return this.data.housekeeping[idx];
         }
         return null;
     },
     
-    // Settings
-    async getSettings() {
+    // === SETTINGS OPERATIONS ===
+    getSettings() {
         return { ...this.data.settings };
     },
     
-    async updateSettings(updates) {
+    updateSettings(updates) {
         this.data.settings = { ...this.data.settings, ...updates };
-        await this.save();
+        this.save();
         return this.data.settings;
     },
     
-    // Clear all data (for testing)
-    async clear() {
+    // === STATISTICS ===
+    getStats() {
+        const today = new Date().toISOString().split('T')[0];
+        const rooms = this.data.rooms;
+        const bookings = this.data.bookings;
+        
+        const totalRooms = rooms.length;
+        const availableRooms = rooms.filter(r => r.status === 'available').length;
+        const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+        const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
+        
+        const occupancyRate = totalRooms > 0 ? ((occupiedRooms / totalRooms) * 100).toFixed(1) : 0;
+        
+        const totalGuests = this.data.guests.length;
+        const totalBookings = bookings.length;
+        
+        // Calculate revenue from checked-out bookings this month
+        const thisMonth = new Date().getMonth();
+        const monthlyRevenue = bookings
+            .filter(b => new Date(b.checkOut).getMonth() === thisMonth)
+            .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+        
+        return {
+            totalRooms,
+            availableRooms,
+            occupiedRooms,
+            maintenanceRooms,
+            occupancyRate,
+            totalGuests,
+            totalBookings,
+            monthlyRevenue
+        };
+    },
+    
+    // Clear all data
+    clear() {
         this.data = {
-            guests: [],
-            reservations: [],
+            properties: [],
+            selectedPropertyId: null,
             rooms: [],
+            guests: [],
+            bookings: [],
             roomTypes: [],
             activities: [],
             rates: [],
@@ -355,9 +413,9 @@ const CloudStore = {
             folios: [],
             settings: {}
         };
-        await this.save();
+        this.save();
     }
 };
 
-// Export for use in other scripts
+// Export for browser
 window.CloudStore = CloudStore;

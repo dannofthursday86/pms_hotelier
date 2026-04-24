@@ -264,9 +264,9 @@
                 const typeObj = roomTypes.find(t => t.id === r.type) || { name: r.typeName || 'Standard' };
                 return `
                 <div class="room-card ${r.status}" onclick="viewRoom('${r.id}')">
-                    <div class="room-number">${r.number}</div>
+                    <div class="room-number">${r.name}</div>
                     <div class="room-type">${typeObj.name}</div>
-                    <div style="font-size: 12px; color: var(--text-secondary);">Floor ${r.floor}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Floor ${r.floor || parseInt(r.name.charAt(0))}</div>
                     <span class="badge badge-${r.status === 'available' ? 'success' : r.status}">${r.status}</span>
                 </div>
             `}).join('');
@@ -288,7 +288,7 @@
         function viewRoom(id) {
             const room = CloudStore.data.rooms.find(r => r.id === id);
             if (room) {
-                showToast(`Room ${room.number}: ${room.typeName} - $${room.rate}/night`, 'success');
+                showToast(`Room ${room.name}: ${room.typeName} - $${room.rate}/night`, 'success');
             }
         }
         
